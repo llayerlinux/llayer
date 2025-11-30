@@ -1,29 +1,53 @@
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/629c2d23-4319-4566-9973-784a6291093d" width="50%" height="320" style="object-fit:cover;" alt="Unixvibe banner" />
+  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/40682d58-896e-4319-b489-d03da6977e31" />
+
 </div>
 
+
+
 <div align="center">
-  <img src="https://img.shields.io/github/last-commit/Litesav-L/unixvibe?style=for-the-badge&color=303030" />
+  <img src="https://img.shields.io/github/last-commit/Litesav-L/lastlayer?style=for-the-badge&color=303030" />
   <img src="https://img.shields.io/badge/AUGUST-2025-8?style=for-the-badge" />
-  <img src="https://img.shields.io/github/repo-size/Litesav-L/unixvibe?style=for-the-badge&cacheSeconds=30" />
+  <img src="https://img.shields.io/github/repo-size/Litesav-L/lastlayer?style=for-the-badge&cacheSeconds=30" />
   <img src="https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white" />
   <img src="https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white" />
   <img src="https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white" />
 </div>
 
 
-# <img width="64" height="64" alt="icon" src="https://github.com/user-attachments/assets/f5e1a1c7-7e95-4d8b-aba1-9e84b9e015e4" />Unixvibe
+
+# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475"  />lastlayer
 
 
 **A dynamic interface layer — a new abstraction above the desktop environment that lets you control the environment at multiple levels and transform it instantly.**
+
 
 <p align="center">
 <img src="https://github.com/user-attachments/assets/6cce4101-8635-4d05-9522-dca663bcdffc" width="800" alt="image">
 </p>
 
----
-The full open-source code—with transparent analytics and a license—will be published soon. I’m removing the obfuscated JS files (Upon request, I can provide it for deobfuscation) 
+## Installation 📦
 
+1. **Clone the repository:**
+```bash
+git clone https://github.com/llayerlinux/lastlayer.git
+cd lastlayer
+```
+2. **Run the installer script:**
+```bash
+./install.sh
+```
+**Dependencies:**  
+All required dependencies are installed automatically by the `install.sh` script — namely: **swww + yad + webkit2gtk**
+
+## Starter adapted rices (if the server is temporarily unavailable)
+https://drive.google.com/file/d/1OEnQnXGsMM4Hn7oMiFKOpse70jhFeQdT/view?usp=sharing
+
+1. Download the archive via the link above and extract it
+2. Click “+” on the bottom button bar for local import
+3. Navigate to the rice directory in your file manager → Open
+
+---
 
 ## Features 💡
 
@@ -55,7 +79,7 @@ The full open-source code—with transparent analytics and a license—will be p
 14. **Multilingual support:**  
    Currently 4 languages are supported.
 
-15. **Unixvibe parameters**  
+15. **lastlayer parameters**  
     - Switch the interface theme,  
     - Basic sound control
 
@@ -97,7 +121,7 @@ RICE_NAME/
 ├── wallpaper.png
 ├── hyprland.conf
 ├── hyprland/
-│   ├── unixvibe.conf
+│   ├── lastlayer.conf
 └── start-scripts/
     ├── install_theme_apps.sh (optional)
     └── set_after_install_actions.sh
@@ -117,7 +141,7 @@ RICE_NAME/
 │   ├── rules.conf
 │   ├── colors.conf
 │   └── keybinds.conf
-│   ├── unixvibe.conf
+│   ├── lastlayer.conf
 └── start-scripts/
     ├── install_theme_apps.sh (optional)
     └── set_after_install_actions.sh
@@ -128,7 +152,7 @@ RICE_NAME/
 `wallpaper.png` — default desktop wallpaper
 
 `hyprland.conf` — contains references to the configuration files for Hyprland (direct parameters without links are also possible); files related to this configuration must be placed in `hyprland/`  
-`unixvibe.conf` — the program’s configuration file that ensures consistent control when switching rices, hides auxiliary terminals during switching, and sets the required visibility attributes for the program window
+`lastlayer.conf` — the program’s configuration file that ensures consistent control when switching rices, hides auxiliary terminals during switching, and sets the required visibility attributes for the program window
 
 `start-scripts/`  
 - `install_theme_apps.sh` — script that installs accompanying applications; runs only on the first installation of a rice  
@@ -136,10 +160,10 @@ RICE_NAME/
 
 `config/` — directory with configuration files of accompanying applications
 
-For simple understanding, you can look at the preset rices in the unixvibe network section or the set of rices in a separate archive — it is based on the best and popular practice of distributing responsibility across the 7 specified files with dynamic links in `hyprland.conf`.
+For simple understanding, you can look at the preset rices in the lastlayer network section or the set of rices in a separate archive — it is based on the best and popular practice of distributing responsibility across the 7 specified files with dynamic links in `hyprland.conf`.
 
 ---
-In future versions there will be no need to follow a rice structure (you will be able to import any old rice and it will be supported), and rices where this is already followed will maintain backward compatibility. It is also planned, as new versions are released and the program code is opened, to shift responsibility from rice scripts toward the program itself. Currently, unixvibe contains a lot of logic related to fast rice switching, on‑the‑fly solutions for incompatibilities between individual versions of applications accompanying the rice, as well as logic that solves other issues often encountered by experienced users. Rice scripts are responsible for installing the list of accompanying applications and launching them, to provide the user with full understanding and transparency of all actions performed in the system (and if you don’t feel like reviewing them, the program itself will determine potentially dangerous commands and will not allow the script to run without the user’s consent).
+In future versions there will be no need to follow a rice structure (you will be able to import any old rice and it will be supported), and rices where this is already followed will maintain backward compatibility. It is also planned, as new versions are released and the program code is opened, to shift responsibility from rice scripts toward the program itself. Currently, lastlayer contains a lot of logic related to fast rice switching, on‑the‑fly solutions for incompatibilities between individual versions of applications accompanying the rice, as well as logic that solves other issues often encountered by experienced users. Rice scripts are responsible for installing the list of accompanying applications and launching them, to provide the user with full understanding and transparency of all actions performed in the system (and if you don’t feel like reviewing them, the program itself will determine potentially dangerous commands and will not allow the script to run without the user’s consent).
 
 
 
@@ -165,12 +189,3 @@ In future versions there will be no need to follow a rice structure (you will be
 
 ---
 ✅ Tested on Hyprland + Arch
-
-**Feedback: unixvibefb@gmail.com**
-
-----
-The application also collects basic analytics (user-by-country statistics, etc.) using Firebase Analytics. By installing it, you agree to this; I’ll add it to install.sh later.
-
-----
-*borrowing resources*:
-distro-icons: https://www.reddit.com/r/linux/comments/nt1tm9/i_made_a_uniform_icon_set_of_linux_distribution/
