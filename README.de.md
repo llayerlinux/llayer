@@ -1,14 +1,39 @@
-![image](https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82)
+<div align="center">
+  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82" />
+</div>
 
-![](https://img.shields.io/github/last-commit/llayerlinux/llayer?style=for-the-badge&color=303030) ![](https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge) ![](https://img.shields.io/github/repo-size/llayerlinux/llayer?style=for-the-badge&cacheSeconds=30) ![](https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white) ![](https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white) ![](https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white)
+<div align="center">
+  <img src="https://img.shields.io/github/last-commit/Litesav-L/lastlayer?style=for-the-badge&color=303030" />
+  <img src="https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge" />
+  <img src="https://img.shields.io/github/repo-size/Litesav-L/lastlayer?style=for-the-badge&cacheSeconds=30" />
+  <img src="https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white" />
+</div>
 
-# ![icon](https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475) lastlayer (llayer) **Eine dynamische Interface-Schicht – eine neue Abstraktion oberhalb der Desktop-Umgebung, mit der du die Umgebung auf mehreren Ebenen steuern und sie sofort transformieren kannst.**
+# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475" /> lastlayer (llayer)
 
-![image](https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223)
+**Eine dynamische Interface-Schicht – eine neue Abstraktion oberhalb der Desktop-Umgebung, mit der du die Umgebung auf mehreren Ebenen steuern und sie sofort transformieren kannst.**
 
-Contents - [Update 1.1](#update-11) - [Installation](#installation-) - [Starter-angepasste-Rices-offline](#starter-angepasste-rices-offline) - [Funktionen](#funktionen) - [Rice-standard](#rice-standard) - [Ein-rice-anpassen](#ein-rice-anpassen) - [Roadmap](#roadmap) - [Getestet-auf](#getestet-auf)
+<p align="center">
+  <img width="1594" height="1383" alt="image" src="https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223" />
+</p>
+
+<details>
+<summary><b>Contents</b></summary>
+
+- [Update 1.1](#update-11)
+- [Installation](#installation-)
+- [Starter-angepasste Rices (offline)](#starter-angepasste-rices-offline)
+- [Funktionen](#funktionen-)
+- [Rice-Standard](#rice-standard-)
+- [Ein vorhandenes Rice anpassen](#ein-vorhandenes-rice-anpassen--ein-neues-erstellen-)
+- [Roadmap](#roadmap-)
+- [Getestet auf](#getestet-auf-)
+</details>
 
 ## Update 1.1
+
 1. Der vollständige Quellcode wurde geöffnet (wie zuvor geplant).
 2. Länder-/Rices-Analytik wurde entfernt.
 3. Funktionalität hinzugefügt, um durchschnittliche Install-/Apply-Geschwindigkeitsmetriken pro Theme anzuzeigen und optional zu senden (Senden ist standardmäßig deaktiviert).
@@ -20,7 +45,7 @@ Contents - [Update 1.1](#update-11) - [Installation](#installation-) - [Starter-
 9. Das Plugin-System verbessert: Möglichkeit hinzugefügt, Probleme mit der externen hyprpm-Abhängigkeit innerhalb des Programms zu beheben, sowie interne Terminal-Logs für andere Plugin-Operationen einzusehen.
 10. Eine breitere architektonische Grundlage für die Integration von Rices anderer Ebenen (rEFInd, GRUB, SDDM usw.) und für die Unterstützung anderer Window-Compositoren vorbereitet.
 
-## Installation
+## Installation 📦
 
 ```bash
 git clone https://github.com/llayerlinux/lastlayer.git
@@ -40,7 +65,7 @@ Falls der Server vorübergehend nicht erreichbar ist:
 2. Klicke **+** in der unteren Button-Leiste für den lokalen Import
 3. Navigiere im Dateimanager zum Rice-Verzeichnis und öffne es
 
-## Funktionen
+## Funktionen 💡
 
 ### Rice-Verwaltung
 
@@ -66,9 +91,8 @@ Falls der Server vorübergehend nicht erreichbar ist:
 ### Sicherheit und Isolation
 
 - Sicherheitsprüfung von Rice-Skripten vor der Ausführung + eigene Sicherheitsregeln.
-- Zweistufige Isolation der Rice-Abhängigkeiten: Standard + kontrolliertes Präfix-System (Beta).
-
-Wenn in einem Rice-Skript Symlinks gefunden werden, haben sie Priorität und der Standardmechanismus wird deaktiviert.
+- Zweistufige Isolation der Rice-Abhängigkeiten: Standard + kontrolliertes Präfix-System (Beta).  
+  Wenn in einem Rice-Skript Symlinks gefunden werden, haben sie Priorität und der Standardmechanismus wird deaktiviert.
 
 ### UX und Quality of Life
 
@@ -86,10 +110,22 @@ Wenn in einem Rice-Skript Symlinks gefunden werden, haben sie Priorität und der
   - das Interface-Theme wechseln
   - grundlegende Sound-Steuerung
 
-## Rice-Standard
+## Rice-Standard 🎨
 
-![](https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0) ![](https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9) ![](https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c)
-![](https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346)
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0" width="300">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9" width="300">
+    </td>
+    <td align="center" valign="middle">
+      <img src="https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c" width="400"><br/>
+      <img src="https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346" width="187">
+    </td>
+  </tr>
+</table>
 
 ### Rice-Karte (aktuell)
 
@@ -105,12 +141,15 @@ Ein Rice sollte enthalten:
 - **Funktionskategorie** (optional; mehrere erlaubt)
 - **Unterstützte Distributionen** (optional; wenn nicht angegeben, generiert lastlayer die Liste automatisch basierend auf dem Skript)
 
-Geplant
+<details>
+<summary><b>Geplant</b></summary>
 
 - Automatische Konvertierung zwischen Distributionen und Tiling-Window-Managern
 - Bewertungssystem (mehr Details in der Roadmap)
 
-## Ein vorhandenes Rice anpassen / ein neues erstellen
+</details>
+
+## Ein vorhandenes Rice anpassen / ein neues erstellen 🎨
 
 In den ersten Versionen benötigt das Programm vorübergehend eine vorhersehbare Rice-Struktur.
 
@@ -171,13 +210,16 @@ Verzeichnis mit Konfigurationsdateien begleitender Anwendungen.
 > [!TIP]
 > Beispiele findest du in den Preset-Rices im Bereich **lastlayer Network** (oder im Starter-Archiv oben). Sie folgen dem üblichen Muster, die Hyprland-Konfiguration in mehrere Dateien aufzuteilen und sie aus `hyprland.conf` zu referenzieren.
 
-Hinweise zur Kompatibilität und zu Skripten (aktueller Ansatz)
+<details>
+<summary><b>Hinweise zur Kompatibilität und zu Skripten (aktueller Ansatz)</b></summary>
 
 - Vorerst erwartet lastlayer eine vorhersehbare Rice-Struktur. In zukünftigen Versionen wirst du Legacy-Rices ohne Umstrukturierung importieren können (Rices, die dieses Layout bereits einhalten, bleiben rückwärtskompatibel).
 - Rice-Skripte installieren und starten begleitende Anwendungen, um alle Aktionen transparent und leicht überprüfbar zu halten.
 - lastlayer erkennt potenziell gefährliche Befehle und führt sie ohne ausdrückliche Zustimmung des Nutzers nicht aus.
 
-## Roadmap
+</details>
+
+## Roadmap 🔮
 
 - [x] Codebasis als Open Source veröffentlicht, Architektur für zukünftige Features vorbereitet
 - [x] Reddit-Rating-Metadaten und einen YouTube-Demo-Link in Rice-Karten integrieren
