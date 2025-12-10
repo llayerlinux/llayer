@@ -1,128 +1,139 @@
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/629c2d23-4319-4566-9973-784a6291093d" width="50%" height="320" style="object-fit:cover;" alt="Unixvibe banner" />
-</div>
+# lastlayer (llayer)
 
-<div align="center">
-  <img src="https://img.shields.io/github/last-commit/Litesav-L/unixvibe?style=for-the-badge&color=303030" />
-  <img src="https://img.shields.io/badge/AUGUST-2025-8?style=for-the-badge" />
-  <img src="https://img.shields.io/github/repo-size/Litesav-L/unixvibe?style=for-the-badge&cacheSeconds=30" />
-  <img src="https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white" />
-  <img src="https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white" />
-  <img src="https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white" />
-</div>
+Una capa de interfaz dinámica: una nueva abstracción por encima del entorno de escritorio que te permite controlar el entorno a varios niveles y transformarlo al instante.
 
+## Contenido
 
-# <img width="64" height="64" alt="icon" src="https://github.com/user-attachments/assets/f5e1a1c7-7e95-4d8b-aba1-9e84b9e015e4" />Unixvibe
+- Update 1.1
+- Instalación
+- Rices adaptados de inicio (offline)
+- Funciones
+- Estándar de rice
+- Adaptar un rice
+- Hoja de ruta
+- Probado en
 
-**Una capa de interfaz dinámica: una nueva abstracción por encima del entorno de escritorio que te permite controlar el entorno en varios niveles y transformarlo al instante.**
+## Update 1.1
 
-<p align="center">
-<img src="https://github.com/user-attachments/assets/6cce4101-8635-4d05-9522-dca663bcdffc" width="800" alt="image">
-</p>
+1. Se ha publicado el código fuente completo (tal como estaba previsto).
+2. Se han eliminado las analíticas de países/rices.
+3. Se añadió la funcionalidad para mostrar y, opcionalmente, enviar métricas medias de velocidad de instalación/aplicación por tema (el envío está desactivado por defecto).
+4. Se añadió la posibilidad de rellenar y ver metadatos adicionales del rice: una publicación de Reddit (con análisis de datos generales) y un enlace de YouTube.
+5. Se actualizó la tarjeta de rice (tema): se implementaron dos modos de visualización con un interruptor: tema local y tema en línea.
+6. Se añadió un menú de ajustes para gestionar listas de barras, habilitando el soporte para barras personalizables más raras y aún no incluidas, así como otros widgets dentro de los rices.
+7. Se actualizó la funcionalidad de punto de restauración (save/restore).
+8. Se mejoró el algoritmo de aplicación/instalación de rices; ambas operaciones son ahora un 30% más rápidas en las mismas condiciones de prueba.
+9. Se mejoró el sistema de plugins: se añadió la posibilidad de corregir problemas con la dependencia externa hyprpm dentro del programa y de ver los registros internos del terminal para otras operaciones de plugins.
+10. Se preparó una base arquitectónica más amplia para integrar rices de otros niveles (rEFInd, GRUB, SDDM, etc.) y para dar soporte a otros compositores de ventanas.
 
-## Instalación 📦
+## Instalación
 
-1. **Clona el repositorio:**
 ```bash
-git clone https://github.com/Litesav-L/unixvibe.git
-cd unixvibe
-```
-2. **Ejecuta el script de instalación:**
-```bash
+git clone https://github.com/llayerlinux/lastlayer.git
+cd lastlayer
 ./install.sh
 ```
-**Dependencias:**  
-Todas las dependencias necesarias se instalan automáticamente mediante el script `install.sh`: **swww + yad + webkit2gtk**
 
-## Rices de inicio adaptados (si el servidor no está disponible temporalmente)
-https://drive.google.com/file/d/1OEnQnXGsMM4Hn7oMiFKOpse70jhFeQdT/view?usp=sharing
+> **Nota**  
+> Todas las dependencias necesarias se instalan automáticamente mediante `install.sh`: swww, yad, webkit2gtk.
 
-1. Descarga el archivo del enlace anterior y extráelo
-2. Pulsa “+” en la barra inferior para la importación local
-3. Navega hasta el directorio del rice en tu gestor de archivos → Abrir
+## Rices adaptados de inicio (offline)
 
----
+Si el servidor no está disponible temporalmente:
 
-## Funcionalidades 💡
+1. Descarga y extrae el archivo:  
+   https://drive.google.com/file/d/1PiXFYCzl5wRDr8SQUB8qu3i93fifvZur/view?usp=sharing
+2. Haz clic en **+** en la barra de botones inferior para importar localmente
+3. Ve al directorio del rice en tu gestor de archivos y ábrelo
 
-1. **Cambio de rice con un clic.**  
-   Cambia entre rices preinstalados de la lista. El tiempo medio de aplicación por clic es de ~2 segundos y disminuirá con cada nueva versión.
+## Funciones
 
-2. **Instalar rices desde Internet / instalación local desde el sistema de archivos.**  
-   Importa rices directamente mediante la pestaña en línea.
+### Gestión de rices
 
-3. **Compartir rices.**  
-   Sube tus propios rices (dotfiles) al servidor para acceso público.
-4. **Posibilidad de editar/eliminar el rice que subiste desde la GUI.**
-5. **Ver el repositorio de configuración (rice) y las distribuciones compatibles; sincronización git básica de la información principal.**
-6. **Gestionar configuraciones desde la interfaz gráfica (GUI).**
-7. **Gestionar plugins desde la GUI; añadir repositorios de plugins; añadir parámetros personalizados a un plugin; soporte para diferentes tipos de parámetros (p. ej., selector de color).**
-8. **Corregir estados temporales problemáticos de los administradores de ventanas en mosaico compatibles.**
-9. **Guardar y restaurar estados del entorno externo.**
-10. **Comprobación de seguridad de los scripts del rice antes de la ejecución. Inicialización de reglas de seguridad personalizadas.**
-11. **Aislamiento en dos niveles de las dependencias del rice: estándar + sistema de prefijos controlado (beta). Si se encuentran enlaces simbólicos en un script del rice, se reconocen, los enlaces simbólicos tienen prioridad y el mecanismo estándar se desactiva.**
+- Cambiar de rice con un clic. El tiempo medio de aplicación es de ~2 segundos (y sigue mejorando).
+- Instalar rices desde internet o importarlos localmente desde el sistema de archivos.
+- Compartir rices: sube tus propios rices (dotfiles) al servidor para acceso público.
+- Editar/eliminar desde la GUI el rice que subiste.
+- Abrir el repositorio de configuración, ver las distribuciones compatibles y sincronizar la información principal mediante Git.
 
-12. **Configurar la animación de cambio de rice (usa temporalmente la dependencia `swww`).**  
-   Posibilidad de cambiar los parámetros de animación en la GUI (tipo de animación, FPS, duración, ángulo de onda).
+### Configuraciones y plugins
 
-13. **Opciones adicionales:**  
-   - Aplicar un rice automáticamente tras el arranque (opcional)  
-   - Mantener o cerrar la ventana de la lista de rices después de la selección (útil para revisar rápidamente varios rices)  
-   - Habilitar el registro del tiempo de aplicación/instalación
+- Gestionar configuraciones desde la GUI.
+- Gestionar plugins desde la GUI:
+  - añadir repositorios de plugins
+  - añadir parámetros personalizados a un plugin
+  - admitir distintos tipos de parámetros (por ejemplo, un selector de color)
 
-14. **Soporte multilingüe:**  
-   Actualmente se admiten 4 idiomas.
+### Herramientas de estabilidad
 
-15. **Parámetros de Unixvibe**  
-    - Cambiar el tema de la interfaz  
-    - Control básico del sonido
+- Corregir estados temporales problemáticos de gestores de ventanas en mosaico compatibles.
+- Guardar y restaurar estados del entorno externo.
 
+### Seguridad y aislamiento
 
-## Estándar de rice 🎨
-<table>
-  <tr>
-    <td align="center">
-      <img src="https://github.com/user-attachments/assets/90b9d5df-c2b9-4b13-a732-fd7f924d805d" width="300">
-    </td>
-    <td align="center" valign="middle">
-      <img src="https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c" width="400"><br/>
-      <img src="https://github.com/user-attachments/assets/d8c71441-b2d0-494f-8ac7-8997869666f6" width="187">
-    </td>
-  </tr>
-</table>
+- Comprobación de seguridad de scripts de rice antes de ejecutarlos + reglas de seguridad personalizadas.
+- Aislamiento en dos niveles de dependencias de rices: estándar + sistema de prefijos controlado (beta).
 
-La tarjeta del rice es una de las ventanas emergentes clave, que se ampliará a medida que se publiquen nuevas versiones.  
-Por el momento, un rice debe incluir:  
-- Previsualización (512x512, 1024x1024)
-- Un enlace al repositorio  
-- El autor (el avatar se extraerá automáticamente de Git)  
-- El autor de la adaptación (opcional)  
-- Etiquetas (opcional)  
-- Una categoría de funcionalidad (opcional, se permiten múltiples)  
-- Información sobre las distribuciones compatibles (opcional; si no se especifica, el programa generará la lista automáticamente en función del script)  
+Si se encuentran enlaces simbólicos en un script de rice, tienen prioridad y el mecanismo estándar se desactiva.
 
-En el futuro, aquí también estarán disponibles la conversión automática entre distribuciones y administradores de ventanas en mosaico, junto con un sistema de calificaciones (más detalles en la hoja de ruta).
+### UX y calidad de vida
 
+- Configurar la animación de cambio de rice (actualmente usa `swww`):
+  - tipo de animación
+  - FPS
+  - duración
+  - ángulo de onda
+- Opciones adicionales:
+  - aplicar automáticamente un rice tras el arranque (opcional)
+  - mantener abierta o cerrar la ventana de lista de rices tras la selección
+  - activar el registro del tiempo de aplicación/instalación
+- Soporte multilingüe: actualmente se admiten 4 idiomas.
+- Parámetros de lastlayer:
+  - cambiar el tema de la interfaz
+  - control básico del sonido
 
-## Adaptar un rice existente / crear uno nuevo 🎨
+## Estándar de rice
 
-En las primeras versiones, el programa requerirá temporalmente seguir la estructura del rice:
+### Tarjeta de rice (actual)
 
-Estructura mínima aceptable (si es Hyprland; para otros administradores de ventanas la estructura será diferente)
+La tarjeta de rice es una de las ventanas emergentes principales y se ampliará en futuras versiones.
+
+Un rice debería incluir:
+
+- Vista previa (512x512 o 1024x1024)
+- Enlace al repositorio
+- Autor (el avatar se obtiene automáticamente desde Git)
+- Autor de la adaptación (opcional)
+- Etiquetas (opcional)
+- Categoría de funcionalidad (opcional; se permiten varias)
+- Distribuciones compatibles (opcional; si no se especifica, lastlayer genera la lista automáticamente en función del script)
+
+Planificado:
+
+- Conversión automática entre distribuciones y gestores de ventanas en mosaico
+- Sistema de valoración (más detalles en la hoja de ruta)
+
+## Adaptar un rice existente / crear uno nuevo
+
+En las primeras versiones, el programa requiere temporalmente una estructura de rice predecible.
+
+### Estructura mínima aceptable (Hyprland)
+
 ```text
 RICE_NAME/
 ├── preview.png
 ├── wallpaper.png
 ├── hyprland.conf
 ├── hyprland/
-│   ├── unixvibe.conf
+│   ├── lastlayer.conf
 └── start-scripts/
-    ├── install_theme_apps.sh (optional)
+    ├── install_theme_apps.sh (opcional)
     └── set_after_install_actions.sh
-├── config/ (optional)
+├── config/ (opcional)
 ```
 
-La estructura completa recomendada de un rice debería verse así:
+### Estructura recomendada
+
 ```text
 RICE_NAME/
 ├── preview.png
@@ -134,52 +145,56 @@ RICE_NAME/
 │   ├── general.conf
 │   ├── rules.conf
 │   ├── colors.conf
-│   └── keybinds.conf
-│   ├── unixvibe.conf
+│   ├── keybinds.conf
+│   └── lastlayer.conf
 └── start-scripts/
-    ├── install_theme_apps.sh (optional)
+    ├── install_theme_apps.sh (opcional)
     └── set_after_install_actions.sh
-├── config/ (optional)
+├── config/ (opcional)
 ```
 
-`preview.png` — imagen mostrada al usuario en la lista de rices  
-`wallpaper.png` — fondo de pantalla de escritorio por defecto
+### Significado de los archivos
 
-`hyprland.conf` — contiene referencias a los archivos de configuración para Hyprland (también son posibles parámetros directos sin enlaces); los archivos relativos a esta configuración deben colocarse en `hyprland/`  
-`unixvibe.conf` — archivo de configuración del programa que garantiza un control coherente al cambiar de rices, oculta terminales auxiliares durante el cambio y establece los atributos de visibilidad necesarios para la ventana del programa
+- `preview.png` - imagen que se muestra al usuario en la lista de rices
+- `wallpaper.png` - fondo de escritorio predeterminado
+- `hyprland.conf` - referencias a archivos de configuración de Hyprland (también son posibles parámetros directos sin enlaces). Los archivos relacionados con esta configuración deben colocarse en `hyprland/`.
+- `lastlayer.conf` - configuración de lastlayer que mantiene el cambio consistente, oculta terminales auxiliares durante el cambio y establece los atributos de visibilidad necesarios para la ventana del programa
 
-`start-scripts/`  
-- `install_theme_apps.sh` — script que instala aplicaciones complementarias; se ejecuta solo en la primera instalación de un rice  
-- `set_after_install_actions.sh` — script que lanza aplicaciones complementarias; se ejecuta cada vez que se aplica un rice
+### start-scripts/
 
-`config/` — directorio con archivos de configuración de aplicaciones complementarias
+- `install_theme_apps.sh` (opcional)  
+  Instala aplicaciones acompañantes. Solo se ejecuta en la primera instalación de un rice.
+- `set_after_install_actions.sh`  
+  Inicia aplicaciones acompañantes. Se ejecuta cada vez que se aplica un rice.
 
-Para una comprensión sencilla, puedes mirar los rices predefinidos en la sección de red de unixvibe o el conjunto de rices en un archivo separado: se basa en la mejor y más popular práctica de distribuir la responsabilidad entre los 7 archivos especificados con enlaces dinámicos en `hyprland.conf`.
+### config/ (opcional)
 
----
-En versiones futuras no será necesario seguir una estructura de rice (podrás importar cualquier rice antiguo y será compatible), y los rices que ya la sigan mantendrán compatibilidad retroactiva. También está previsto, a medida que se publiquen nuevas versiones y se abra el código del programa, trasladar la responsabilidad de los scripts de los rices hacia el propio programa. Actualmente, unixvibe contiene mucha lógica relacionada con el cambio rápido de rices, soluciones sobre la marcha para incompatibilidades entre versiones individuales de las aplicaciones que acompañan al rice, así como lógica que resuelve otros problemas que suelen encontrar los usuarios experimentados. Los scripts de los rices son responsables de instalar la lista de aplicaciones complementarias y de lanzarlas, para dar al usuario una comprensión completa y transparencia de todas las acciones realizadas en el sistema (y si no te apetece revisarlas, el propio programa determinará los comandos potencialmente peligrosos y no permitirá ejecutar el script sin el consentimiento del usuario).
+Directorio con archivos de configuración de las aplicaciones acompañantes.
 
+> **Consejo**  
+> Para ver ejemplos, revisa los rices predefinidos en la sección **Network** de lastlayer (o el archivo inicial de arriba). Siguen el patrón habitual de dividir la configuración de Hyprland en varios archivos y referenciarlos desde `hyprland.conf`.
 
+Notas sobre compatibilidad y scripts (enfoque actual):
 
-## Hoja de ruta 🔮
+- Por ahora, lastlayer espera una estructura de rice predecible. En futuras versiones podrás importar rices heredados sin reestructurarlos (los rices que ya siguen este diseño seguirán siendo retrocompatibles).
+- Los scripts de rice instalan e inician aplicaciones acompañantes para que todas las acciones sean transparentes y fáciles de revisar.
+- lastlayer detecta comandos potencialmente peligrosos y no los ejecutará sin el consentimiento explícito del usuario.
 
-1. **Añadir la posibilidad de cambiar fácilmente los rices en todo el flujo del PC (rices para pantallas de arranque GRUB, rEFInd, pantalla de inicio de sesión).**
+## Hoja de ruta
 
-2. **Soporte para otros administradores de ventanas populares (gestión de rices, configuraciones, plugins).**
+- Se liberó el código como open source con una arquitectura preparada para futuras funciones
+- Integrar metadatos de valoraciones de Reddit y un enlace de demostración de YouTube en las tarjetas de rice
+- Cambiar rices a través de todo el flujo del PC (GRUB, rEFInd, pantalla de inicio de sesión)
+- Dar soporte a otros gestores de ventanas populares (rices, configuraciones, plugins)
+- Convertir/mapear rices entre gestores de ventanas (módulo de sistema de parámetros equivalentes) y convertir paquetes de instalación/aplicación entre distribuciones
+- Módulo de retrocompatibilidad para rices heredados
+- Mejoras de la UI: drag and drop, filtros por etiquetas, paginación para elementos de Network
+- Experimental: cambiar por modo de trabajo actual o por el contexto de la ventana enfocada
+- Generación con IA de entornos/rices (basada en prompt y contexto)
 
-3. **Capacidad para convertir/mapear rices entre diferentes administradores de ventanas (módulo de sistema de parámetros equivalentes), convertir paquetes de instalación y de aplicación entre diferentes distribuciones.**
+> **Nota**  
+> El código es totalmente de código abierto desde la v1.1. Se agradecen sugerencias y reportes de issues.
 
-4. **Mecanismo para soportar compatibilidad retroactiva para rices antiguos y los que eventualmente se volverán antiguos (módulo de sistema de parámetros equivalentes).**
+## Probado en ✅
 
-5. **Integrar valoraciones de rices leyendo y actualizando APIs externas (reddit, git) + un posible sistema interno de calificación y motivación de autores.**
-
-6. **Mejoras generales del programa: arrastrar y soltar en elementos del tema, agrupar y filtrar rices por etiquetas, paginación de elementos de red, etc.**
-
-7. **Funciones experimentales para validar la utilidad práctica de los rices: aplicar por modo de trabajo actual, aplicar por contexto de la ventana seleccionada.**
-
-8. **Generación de entornos/rices mediante IA: un gran módulo que permite generar el entorno en función de prompts o del contexto de acciones.**
-
-**También estoy considerando abrir completamente el código en un futuro próximo y estar listo para aceptar cambios en git.**
-
----
-✅ Probado en Hyprland + Arch
+- Hyprland + Arch
