@@ -4,7 +4,7 @@
 
 <div align="center">
   <img src="https://img.shields.io/github/last-commit/Litesav-L/lastlayer?style=for-the-badge&color=303030" />
-  <img src="https://img.shields.io/badge/AUGUST-2025-8?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge" />
   <img src="https://img.shields.io/github/repo-size/Litesav-L/lastlayer?style=for-the-badge&cacheSeconds=30" />
   <img src="https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white" />
   <img src="https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white" />
@@ -61,7 +61,7 @@ cd lastlayer
 If the server is temporarily unavailable:
 
 1. Download and extract the archive:  
-   https://drive.google.com/file/d/1OEnQnXGsMM4Hn7oMiFKOpse70jhFeQdT/view?usp=sharing
+  https://drive.google.com/file/d/1PiXFYCzl5wRDr8SQUB8qu3i93fifvZur/view?usp=sharing
 2. Click **+** on the bottom button bar for local import
 3. Navigate to the rice directory in your file manager and open it
 
