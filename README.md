@@ -1,9 +1,6 @@
 <div align="center">
-  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/40682d58-896e-4319-b489-d03da6977e31" />
-
+  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82"  />
 </div>
-
-
 
 <div align="center">
   <img src="https://img.shields.io/github/last-commit/Litesav-L/lastlayer?style=for-the-badge&color=303030" />
@@ -84,15 +81,20 @@ https://drive.google.com/file/d/1OEnQnXGsMM4Hn7oMiFKOpse70jhFeQdT/view?usp=shari
     - Basic sound control
 
 
+
+
 ## Rice standard 🎨
 <table>
   <tr>
     <td align="center">
-      <img src="https://github.com/user-attachments/assets/90b9d5df-c2b9-4b13-a732-fd7f924d805d" width="300">
+      <img src="https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0" width="300">
+    </td>
+    <td align="center">
+      <img  src="https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9"  width="300">
     </td>
     <td align="center" valign="middle">
       <img src="https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c" width="400"><br/>
-      <img src="https://github.com/user-attachments/assets/d8c71441-b2d0-494f-8ac7-8997869666f6" width="187">
+      <img src="https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346"  width="187">
     </td>
   </tr>
 </table>
