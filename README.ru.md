@@ -1,26 +1,51 @@
-![image](https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82)
+<div align="center">
+  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82" />
+</div>
 
-![](https://img.shields.io/github/last-commit/llayerlinux/llayer?style=for-the-badge&color=303030) ![](https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge) ![](https://img.shields.io/github/repo-size/llayerlinux/llayer?style=for-the-badge&cacheSeconds=30) ![](https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white) ![](https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white) ![](https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white)
+<div align="center">
+  <img src="https://img.shields.io/github/last-commit/Litesav-L/lastlayer?style=for-the-badge&color=303030" />
+  <img src="https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge" />
+  <img src="https://img.shields.io/github/repo-size/Litesav-L/lastlayer?style=for-the-badge&cacheSeconds=30" />
+  <img src="https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white" />
+</div>
 
-# ![icon](https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475) lastlayer (llayer) **Eine dynamische Interface-Schicht – eine neue Abstraktion oberhalb der Desktop-Umgebung, mit der du die Umgebung auf mehreren Ebenen steuern und sie sofort transformieren kannst.**
+# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475" /> lastlayer (llayer)
 
-![image](https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223)
+**Динамический интерфейсный слой — новая абстракция над окружением рабочего стола, позволяющая управлять средой на нескольких уровнях и мгновенно её преобразовывать.**
 
-Contents - [Update 1.1](#update-11) - [Installation](#installation-) - [Starter-angepasste-Rices-offline](#starter-angepasste-rices-offline) - [Funktionen](#funktionen) - [Rice-standard](#rice-standard) - [Ein-rice-anpassen](#ein-rice-anpassen) - [Roadmap](#roadmap) - [Getestet-auf](#getestet-auf)
+<p align="center">
+  <img width="1594" height="1383" alt="image" src="https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223" />
+</p>
+
+<details>
+<summary><b>Contents</b></summary>
+
+- [Update 1.1](#update-11)
+- [Установка](#установка-📦)
+- [Стартовые адаптированные rices (офлайн)](#стартовые-адаптированные-rices-офлайн)
+- [Возможности](#возможности-💡)
+- [Стандарт rice](#стандарт-rice-🎨)
+- [Адаптация существующего rice / создание нового](#адаптация-существующего-rice--создание-нового-🎨)
+- [Дорожная карта](#дорожная-карта-🔮)
+- [Проверено на](#проверено-на-✅)
+</details>
 
 ## Update 1.1
-1. Der vollständige Quellcode wurde geöffnet (wie zuvor geplant).
-2. Länder-/Rices-Analytik wurde entfernt.
-3. Funktionalität hinzugefügt, um durchschnittliche Install-/Apply-Geschwindigkeitsmetriken pro Theme anzuzeigen und optional zu senden (Senden ist standardmäßig deaktiviert).
-4. Möglichkeit hinzugefügt, zusätzliche Rice-Metadaten auszufüllen und anzusehen: ein Reddit-Post (mit Parsing allgemeiner Daten) und ein YouTube-Link.
-5. Die Rice-(Theme-)Karte aktualisiert: zwei Anzeigemodi mit Umschalter implementiert: lokales Theme und Online-Theme.
-6. Ein Einstellungsmenü hinzugefügt, um Leistenlisten zu verwalten – unterstützt seltenere und noch nicht enthaltene anpassbare Bars und andere Widgets innerhalb von Rices.
-7. Die Restore-Point-(Speichern/Wiederherstellen-)Funktionalität aktualisiert.
-8. Den Rice-Apply-/Install-Algorithmus verbessert; beide Vorgänge sind unter denselben Testbedingungen jetzt 30% schneller.
-9. Das Plugin-System verbessert: Möglichkeit hinzugefügt, Probleme mit der externen hyprpm-Abhängigkeit innerhalb des Programms zu beheben, sowie interne Terminal-Logs für andere Plugin-Operationen einzusehen.
-10. Eine breitere architektonische Grundlage für die Integration von Rices anderer Ebenen (rEFInd, GRUB, SDDM usw.) und für die Unterstützung anderer Window-Compositoren vorbereitet.
 
-## Installation
+1. Полный исходный код открыт (как и планировалось ранее).
+2. Удалена аналитика по странам/rices.
+3. Добавлена функциональность для отображения и, при желании, отправки средних метрик скорости установки/применения по теме (отправка по умолчанию отключена).
+4. Добавлена возможность заполнять и просматривать дополнительные метаданные rice: пост на Reddit (с парсингом общих данных) и ссылку на YouTube.
+5. Обновлена карточка rice (темы): реализованы два режима отображения с переключателем — локальная тема и онлайн-тема.
+6. Добавлено меню настроек для управления списками баров, что позволяет поддерживать более редкие и ещё не добавленные настраиваемые бары и другие виджеты внутри rices.
+7. Обновлена функциональность точки восстановления (сохранение/восстановление).
+8. Улучшен алгоритм применения/установки rice; обе операции теперь на 30% быстрее при тех же условиях тестирования.
+9. Улучшена система плагинов: добавлена возможность исправлять проблемы с внешней зависимостью hyprpm прямо внутри программы, а также просматривать внутренние логи терминала для других операций плагинов.
+10. Подготовлена более широкая архитектурная база для интеграции rices других уровней (rEFInd, GRUB, SDDM и т. д.) и поддержки других оконных композиторов.
+
+## Установка 📦
 
 ```bash
 git clone https://github.com/llayerlinux/lastlayer.git
@@ -29,92 +54,106 @@ cd lastlayer
 ```
 
 > [!NOTE]
-> Alle erforderlichen Abhängigkeiten werden automatisch durch `install.sh` installiert: **swww**, **yad**, **webkit2gtk**.
+> Все необходимые зависимости устанавливаются автоматически скриптом `install.sh`: **swww**, **yad**, **webkit2gtk**.
 
-## Starter-angepasste Rices (offline)
+## Стартовые адаптированные rices (офлайн)
 
-Falls der Server vorübergehend nicht erreichbar ist:
+Если сервер временно недоступен:
 
-1. Lade das Archiv herunter und entpacke es:  
+1. Скачайте и распакуйте архив:  
    https://drive.google.com/file/d/1PiXFYCzl5wRDr8SQUB8qu3i93fifvZur/view?usp=sharing
-2. Klicke **+** in der unteren Button-Leiste für den lokalen Import
-3. Navigiere im Dateimanager zum Rice-Verzeichnis und öffne es
+2. Нажмите **+** на нижней панели кнопок для локального импорта
+3. Перейдите к директории rice в файловом менеджере и откройте её
 
-## Funktionen
+## Возможности 💡
 
-### Rice-Verwaltung
+### Управление rices
 
-- **Ein-Klick-Rice-Wechsel.** Die durchschnittliche Apply-Zeit liegt bei ~2 Sekunden (und wird weiter verbessert).
-- **Installiere Rices** aus dem Internet oder **importiere sie lokal** aus dem Dateisystem.
-- **Teile Rices.** Lade deine eigenen Rices (Dotfiles) auf den Server hoch, damit sie öffentlich verfügbar sind.
-- **Bearbeite/entferne** das hochgeladene Rice in der GUI.
-- **Öffne das Konfigurations-Repository**, sieh dir unterstützte Distributionen an und synchronisiere Kerninformationen via Git.
+- **Переключение rice одним кликом.** Среднее время применения ~2 секунды (и продолжает улучшаться).
+- **Устанавливайте rices** из интернета или **импортируйте их локально** из файловой системы.
+- **Делитесь rices.** Загружайте свои rices (dotfiles) на сервер для публичного доступа.
+- **Редактируйте/удаляйте** загруженный вами rice через GUI.
+- **Открывайте репозиторий конфигурации**, смотрите поддерживаемые дистрибутивы и синхронизируйте основную информацию через Git.
 
-### Configs und Plugins
+### Конфиги и плагины
 
-- Verwalte Konfigurationen über die GUI.
-- Verwalte Plugins über die GUI:
-  - Plugin-Repositories hinzufügen
-  - benutzerdefinierte Parameter zu einem Plugin hinzufügen
-  - verschiedene Parametertypen unterstützen (z. B. einen Farbwähler)
+- Управляйте конфигурациями через GUI.
+- Управляйте плагинами через GUI:
+  - добавляйте репозитории плагинов
+  - добавляйте пользовательские параметры в плагин
+  - поддерживайте разные типы параметров (например, выбор цвета)
 
-### Stabilitäts-Tools
+### Инструменты стабильности
 
-- Problematische temporäre Zustände unterstützter Tiling-Window-Manager beheben.
-- Externe Umgebungszustände speichern und wiederherstellen.
+- Исправляйте проблемные временные состояния поддерживаемых тайлинговых оконных менеджеров.
+- Сохраняйте и восстанавливайте внешние состояния окружения.
 
-### Sicherheit und Isolation
+### Безопасность и изоляция
 
-- Sicherheitsprüfung von Rice-Skripten vor der Ausführung + eigene Sicherheitsregeln.
-- Zweistufige Isolation der Rice-Abhängigkeiten: Standard + kontrolliertes Präfix-System (Beta).
+- Проверка безопасности скриптов rice перед выполнением + пользовательские правила безопасности.
+- Двухуровневая изоляция зависимостей rice: стандартная + система контролируемых префиксов (beta).  
+  Если в скрипте rice обнаружены симлинки, они получают приоритет, а стандартный механизм отключается.
 
-Wenn in einem Rice-Skript Symlinks gefunden werden, haben sie Priorität und der Standardmechanismus wird deaktiviert.
+### UX и удобство
 
-### UX und Quality of Life
-
-- Konfiguriere die Rice-Wechsel-Animation (verwendet aktuell `swww`):
-  - Animationstyp
+- Настройка анимации переключения rice (сейчас используется `swww`):
+  - тип анимации
   - FPS
-  - Dauer
-  - Wellenwinkel
-- Zusätzliche Optionen:
-  - ein Rice nach dem Boot automatisch anwenden (optional)
-  - das Rice-Listen-Fenster nach der Auswahl offen lassen oder schließen
-  - Logging der Apply/Install-Zeit aktivieren
-- Mehrsprachige Unterstützung: derzeit werden 4 Sprachen unterstützt.
-- lastlayer-Parameter:
-  - das Interface-Theme wechseln
-  - grundlegende Sound-Steuerung
+  - длительность
+  - угол волны
+- Дополнительные опции:
+  - авто-применение rice после загрузки (опционально)
+  - оставлять или закрывать окно списка rices после выбора
+  - включать логирование времени применения/установки
+- Мультиязычность: сейчас поддерживается 4 языка.
+- Параметры lastlayer:
+  - переключение темы интерфейса
+  - базовое управление звуком
 
-## Rice-Standard
+## Стандарт rice 🎨
 
-![](https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0) ![](https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9) ![](https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c)
-![](https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346)
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0" width="300">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9" width="300">
+    </td>
+    <td align="center" valign="middle">
+      <img src="https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c" width="400"><br/>
+      <img src="https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346" width="187">
+    </td>
+  </tr>
+</table>
 
-### Rice-Karte (aktuell)
+### Карточка rice (текущая)
 
-Die Rice-Karte ist eines der zentralen Pop-ups und wird in zukünftigen Versionen erweitert.
+Карточка rice — одно из ключевых всплывающих окон и будет расширяться в будущих версиях.
 
-Ein Rice sollte enthalten:
+Rice должен включать:
+- **Превью** (512x512 или 1024x1024)
+- **Ссылку на репозиторий**
+- **Автора** (аватар автоматически парсится из Git)
+- **Автора адаптации** (опционально)
+- **Теги** (опционально)
+- **Категорию функциональности** (опционально; допускается несколько)
+- **Поддерживаемые дистрибутивы** (опционально; если не указано, lastlayer генерирует список автоматически на основе скрипта)
 
-- **Vorschau** (512x512 oder 1024x1024)
-- **Repository-Link**
-- **Autor** (Avatar wird automatisch aus Git geparst)
-- **Adaptionsautor** (optional)
-- **Tags** (optional)
-- **Funktionskategorie** (optional; mehrere erlaubt)
-- **Unterstützte Distributionen** (optional; wenn nicht angegeben, generiert lastlayer die Liste automatisch basierend auf dem Skript)
+<details>
+<summary><b>Заметки о совместимости и скриптах (текущий подход)</b></summary>
 
-Geplant
+- Пока что lastlayer ожидает предсказуемую структуру rice. В будущих версиях вы сможете импортировать legacy-rices без реструктуризации (rices, которые уже следуют этому макету, сохранят обратную совместимость).
+- Скрипты rice устанавливают и запускают сопутствующие приложения, чтобы все действия были прозрачными и легко проверяемыми.
+- lastlayer распознаёт потенциально опасные команды и не выполняет их без явного согласия пользователя.
 
-- Automatische Konvertierung zwischen Distributionen und Tiling-Window-Managern
-- Bewertungssystem (mehr Details in der Roadmap)
+</details>
 
-## Ein vorhandenes Rice anpassen / ein neues erstellen
+## Адаптация существующего rice / создание нового 🎨
 
-In den ersten Versionen benötigt das Programm vorübergehend eine vorhersehbare Rice-Struktur.
+В первых версиях программе временно требуется предсказуемая структура rice.
 
-### Minimal akzeptable Struktur (Hyprland)
+### Минимально допустимая структура (Hyprland)
 
 ```text
 RICE_NAME/
@@ -129,7 +168,7 @@ RICE_NAME/
 ├── config/ (optional)
 ```
 
-### Empfohlene Struktur
+### Рекомендуемая структура
 
 ```text
 RICE_NAME/
@@ -150,48 +189,42 @@ RICE_NAME/
 ├── config/ (optional)
 ```
 
-### Dateibedeutungen
+### Значение файлов
 
-- `preview.png` – Bild, das dem Nutzer in der Rice-Liste angezeigt wird
-- `wallpaper.png` – Standard-Desktop-Hintergrund
-- `hyprland.conf` – Referenzen zu Hyprland-Konfigurationsdateien (direkte Parameter ohne Links sind ebenfalls möglich). Dateien, die zu dieser Konfiguration gehören, müssen in `hyprland/` liegen.
-- `lastlayer.conf` – lastlayer-Konfiguration, die das Umschalten konsistent hält, Hilfsterminals während des Umschaltens ausblendet und die erforderlichen Sichtbarkeitsattribute für das Programmfenster setzt.
+- `preview.png` – изображение, показываемое пользователю в списке rices
+- `wallpaper.png` – обои рабочего стола по умолчанию
+- `hyprland.conf` – ссылки на файлы конфигурации Hyprland (возможны и прямые параметры без ссылок). Файлы, относящиеся к этой конфигурации, должны располагаться в `hyprland/`.
+- `lastlayer.conf` – конфигурация lastlayer, которая обеспечивает консистентное переключение, скрывает вспомогательные терминалы во время переключения и задаёт необходимые атрибуты видимости для окна программы.
 
 ### start-scripts/
 
 - `install_theme_apps.sh` (optional)  
-  Installiert begleitende Anwendungen. Läuft nur bei der ersten Installation eines Rice.
+  Устанавливает сопутствующие приложения. Запускается только при первой установке rice.
 - `set_after_install_actions.sh`  
-  Startet begleitende Anwendungen. Läuft jedes Mal, wenn ein Rice angewendet wird.
+  Запускает сопутствующие приложения. Выполняется каждый раз при применении rice.
 
 ### config/ (optional)
 
-Verzeichnis mit Konfigurationsdateien begleitender Anwendungen.
+Директория с конфигурационными файлами сопутствующих приложений.
 
 > [!TIP]
-> Beispiele findest du in den Preset-Rices im Bereich **lastlayer Network** (oder im Starter-Archiv oben). Sie folgen dem üblichen Muster, die Hyprland-Konfiguration in mehrere Dateien aufzuteilen und sie aus `hyprland.conf` zu referenzieren.
+> Примеры можно посмотреть в предустановленных rices в разделе **lastlayer Network** (или в стартовом архиве выше). Они следуют распространённому подходу: разносить конфиг Hyprland по нескольким файлам и подключать их из `hyprland.conf`.
 
-Hinweise zur Kompatibilität und zu Skripten (aktueller Ansatz)
+## Дорожная карта 🔮
 
-- Vorerst erwartet lastlayer eine vorhersehbare Rice-Struktur. In zukünftigen Versionen wirst du Legacy-Rices ohne Umstrukturierung importieren können (Rices, die dieses Layout bereits einhalten, bleiben rückwärtskompatibel).
-- Rice-Skripte installieren und starten begleitende Anwendungen, um alle Aktionen transparent und leicht überprüfbar zu halten.
-- lastlayer erkennt potenziell gefährliche Befehle und führt sie ohne ausdrückliche Zustimmung des Nutzers nicht aus.
-
-## Roadmap
-
-- [x] Codebasis als Open Source veröffentlicht, Architektur für zukünftige Features vorbereitet
-- [x] Reddit-Rating-Metadaten und einen YouTube-Demo-Link in Rice-Karten integrieren
-- [ ] Rices über den gesamten PC-Flow wechseln (GRUB, rEFInd, Login-Screen)
-- [ ] Unterstützung weiterer populärer Window-Manager (Rices, Configs, Plugins)
-- [ ] Rices zwischen Window-Managern konvertieren/mappen (Modul für äquivalente Parameter) und Install/Apply-Pakete zwischen Distributionen konvertieren
-- [ ] Modul für Abwärtskompatibilität für Legacy-Rices
-- [ ] UI-Verbesserungen: Drag & Drop, Tag-Filter, Pagination für Network-Items
-- [ ] Experimentell: Wechsel nach aktuellem Arbeitsmodus oder nach Kontext des fokussierten Fensters
-- [ ] KI-Generierung von Umgebungen/Rices (prompt- und kontextbasiert)
+- [x] Код открыт, архитектура подготовлена для будущих функций
+- [x] Интегрировать метаданные рейтинга Reddit и ссылку на демо YouTube в карточки rice
+- [ ] Переключать rices по всему потоку ПК (GRUB, rEFInd, экран входа)
+- [ ] Поддержка других популярных оконных менеджеров (rices, конфиги, плагины)
+- [ ] Конвертация/маппинг rices между оконными менеджерами (модуль системы эквивалентных параметров) и конвертация пакетов install/apply между дистрибутивами
+- [ ] Модуль обратной совместимости для legacy-rices
+- [ ] Улучшения UI: drag and drop, фильтры по тегам, пагинация для элементов Network
+- [ ] Экспериментально: переключение по текущему рабочему режиму или по контексту активного окна
+- [ ] ИИ-генерация окружений/rices (на основе промпта и контекста)
 
 > [!NOTE]
-> Der Code ist seit v1.1 vollständig Open Source. Vorschläge und Issue-Reports sind willkommen.
+> Код полностью открыт с версии v1.1. Предложения и отчёты об issues приветствуются.
 
-## Getestet auf ✅
+## Проверено на ✅
 
 - Hyprland + Arch
