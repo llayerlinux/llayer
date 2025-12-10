@@ -1,26 +1,51 @@
-![image](https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82)
+<div align="center">
+  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82" />
+</div>
 
-![](https://img.shields.io/github/last-commit/llayerlinux/llayer?style=for-the-badge&color=303030) ![](https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge) ![](https://img.shields.io/github/repo-size/llayerlinux/llayer?style=for-the-badge&cacheSeconds=30) ![](https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white) ![](https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white) ![](https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white)
+<div align="center">
+  <img src="https://img.shields.io/github/last-commit/Litesav-L/lastlayer?style=for-the-badge&color=303030" />
+  <img src="https://img.shields.io/badge/DECEMBER-2025-12?style=for-the-badge" />
+  <img src="https://img.shields.io/github/repo-size/Litesav-L/lastlayer?style=for-the-badge&cacheSeconds=30" />
+  <img src="https://img.shields.io/badge/Linux-%23171717?style=for-the-badge&logo=linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Arch-%23007ACC?style=for-the-badge&logo=arch-linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white" />
+</div>
 
-# ![icon](https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475) lastlayer (llayer) **Una capa de interfaz dinámica: una nueva abstracción por encima del entorno de escritorio que te permite controlar el entorno en múltiples niveles y transformarlo al instante.**
+# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475" /> lastlayer (llayer)
 
-![image](https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223)
+**Una capa de interfaz dinámica: una nueva abstracción por encima del entorno de escritorio que te permite controlar el entorno en múltiples niveles y transformarlo al instante.**
 
-Contents - [Update 1.1](#update-11) - [Instalación](#instalación) - [Rices-adaptados-de-inicio-sin-conexión](#rices-adaptados-de-inicio-sin-conexión) - [Funcionalidades](#funcionalidades) - [Estándar-de-rice](#estándar-de-rice) - [Adaptar-un-rice](#adaptar-un-rice) - [Hoja-de-ruta](#hoja-de-ruta) - [Probado-en](#probado-en)
+<p align="center">
+  <img width="1594" height="1383" alt="image" src="https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223" />
+</p>
+
+<details>
+<summary><b>Contents</b></summary>
+
+- [Update 1.1](#update-11)
+- [Instalación](#instalación-📦)
+- [Rices adaptados de inicio (sin conexión)](#rices-adaptados-de-inicio-sin-conexión)
+- [Funcionalidades](#funcionalidades-💡)
+- [Estándar de rice](#estándar-de-rice-🎨)
+- [Adaptar un rice existente / crear uno nuevo](#adaptar-un-rice-existente--crear-uno-nuevo-🎨)
+- [Hoja de ruta](#hoja-de-ruta-🔮)
+- [Probado en](#probado-en-✅)
+</details>
 
 ## Update 1.1
-1. Der vollständige Quellcode wurde geöffnet (wie zuvor geplant).
-2. Länder-/Rices-Analytik wurde entfernt.
-3. Funktionalität hinzugefügt, um durchschnittliche Install-/Apply-Geschwindigkeitsmetriken pro Theme anzuzeigen und optional zu senden (Senden ist standardmäßig deaktiviert).
-4. Möglichkeit hinzugefügt, zusätzliche Rice-Metadaten auszufüllen und anzusehen: ein Reddit-Post (mit Parsing allgemeiner Daten) und ein YouTube-Link.
-5. Die Rice-(Theme-)Karte aktualisiert: zwei Anzeigemodi mit Umschalter implementiert: lokales Theme und Online-Theme.
-6. Ein Einstellungsmenü hinzugefügt, um Leistenlisten zu verwalten – unterstützt seltenere und noch nicht enthaltene anpassbare Bars und andere Widgets innerhalb von Rices.
-7. Die Restore-Point-(Speichern/Wiederherstellen-)Funktionalität aktualisiert.
-8. Den Rice-Apply-/Install-Algorithmus verbessert; beide Vorgänge sind unter denselben Testbedingungen jetzt 30% schneller.
-9. Das Plugin-System verbessert: Möglichkeit hinzugefügt, Probleme mit der externen hyprpm-Abhängigkeit innerhalb des Programms zu beheben, sowie interne Terminal-Logs für andere Plugin-Operationen einzusehen.
-10. Eine breitere architektonische Grundlage für die Integration von Rices anderer Ebenen (rEFInd, GRUB, SDDM usw.) und für die Unterstützung anderer Window-Compositoren vorbereitet.
 
-## Installation
+1. Se ha abierto el código fuente completo (tal y como estaba previsto).
+2. Se han eliminado las analíticas de países/rices.
+3. Se ha añadido la funcionalidad para mostrar y, opcionalmente, enviar métricas promedio de velocidad de instalación/aplicación por tema (el envío está desactivado por defecto).
+4. Se ha añadido la capacidad de completar y ver metadatos extra del rice: una publicación de Reddit (con análisis de datos generales) y un enlace de YouTube.
+5. Se ha actualizado la tarjeta del rice (tema): se han implementado dos modos de visualización con un interruptor: tema local y tema en línea.
+6. Se ha añadido un menú de configuración para gestionar listas de barras, habilitando el soporte para barras personalizables más raras y aún no incluidas, y otros widgets dentro de los rices.
+7. Se ha actualizado la funcionalidad de punto de restauración (guardar/restaurar).
+8. Se ha mejorado el algoritmo de aplicar/instalar rices; ambas operaciones son ahora un 30% más rápidas bajo las mismas condiciones de prueba.
+9. Se ha mejorado el sistema de plugins: se ha añadido la capacidad de corregir problemas con la dependencia externa hyprpm dentro del programa, y de ver registros internos del terminal para otras operaciones de plugins.
+10. Se ha preparado una base arquitectónica más amplia para integrar rices de otros niveles (rEFInd, GRUB, SDDM, etc.) y para dar soporte a otros compositores de ventanas.
+
+## Instalación 📦
 
 ```bash
 git clone https://github.com/llayerlinux/lastlayer.git
@@ -29,92 +54,105 @@ cd lastlayer
 ```
 
 > [!NOTE]
-> Alle erforderlichen Abhängigkeiten werden automatisch durch `install.sh` installiert: **swww**, **yad**, **webkit2gtk**.
+> Todas las dependencias necesarias se instalan automáticamente mediante `install.sh`: **swww**, **yad**, **webkit2gtk**.
 
-## Starter-angepasste Rices (offline)
+## Rices adaptados de inicio (sin conexión)
 
-Falls der Server vorübergehend nicht erreichbar ist:
+Si el servidor no está disponible temporalmente:
 
-1. Lade das Archiv herunter und entpacke es:  
+1. Descarga y extrae el archivo:  
    https://drive.google.com/file/d/1PiXFYCzl5wRDr8SQUB8qu3i93fifvZur/view?usp=sharing
-2. Klicke **+** in der unteren Button-Leiste für den lokalen Import
-3. Navigiere im Dateimanager zum Rice-Verzeichnis und öffne es
+2. Haz clic en **+** en la barra inferior de botones para la importación local
+3. Ve al directorio del rice en tu gestor de archivos y ábrelo
 
-## Funktionen
+## Funcionalidades 💡
 
-### Rice-Verwaltung
+### Gestión de rices
 
-- **Ein-Klick-Rice-Wechsel.** Die durchschnittliche Apply-Zeit liegt bei ~2 Sekunden (und wird weiter verbessert).
-- **Installiere Rices** aus dem Internet oder **importiere sie lokal** aus dem Dateisystem.
-- **Teile Rices.** Lade deine eigenen Rices (Dotfiles) auf den Server hoch, damit sie öffentlich verfügbar sind.
-- **Bearbeite/entferne** das hochgeladene Rice in der GUI.
-- **Öffne das Konfigurations-Repository**, sieh dir unterstützte Distributionen an und synchronisiere Kerninformationen via Git.
+- **Cambio de rice con un clic.** El tiempo medio de aplicación es de ~2 segundos (y sigue mejorando).
+- **Instala rices** desde internet o **impórtalos localmente** desde el sistema de archivos.
+- **Comparte rices.** Sube tus propios rices (dotfiles) al servidor para acceso público.
+- **Edita/elimina** el rice que hayas subido desde la GUI.
+- **Abre el repositorio de configuración**, consulta las distribuciones compatibles y sincroniza la información principal mediante Git.
 
-### Configs und Plugins
+### Configuraciones y plugins
 
-- Verwalte Konfigurationen über die GUI.
-- Verwalte Plugins über die GUI:
-  - Plugin-Repositories hinzufügen
-  - benutzerdefinierte Parameter zu einem Plugin hinzufügen
-  - verschiedene Parametertypen unterstützen (z. B. einen Farbwähler)
+- Gestiona configuraciones desde la GUI.
+- Gestiona plugins desde la GUI:
+  - añadir repositorios de plugins
+  - añadir parámetros personalizados a un plugin
+  - admitir distintos tipos de parámetros (por ejemplo, un selector de color)
 
-### Stabilitäts-Tools
+### Herramientas de estabilidad
 
-- Problematische temporäre Zustände unterstützter Tiling-Window-Manager beheben.
-- Externe Umgebungszustände speichern und wiederherstellen.
+- Corrige estados temporales problemáticos de gestores de ventanas en mosaico compatibles.
+- Guarda y restaura estados externos del entorno.
 
-### Sicherheit und Isolation
+### Seguridad y aislamiento
 
-- Sicherheitsprüfung von Rice-Skripten vor der Ausführung + eigene Sicherheitsregeln.
-- Zweistufige Isolation der Rice-Abhängigkeiten: Standard + kontrolliertes Präfix-System (Beta).
+- Comprobación de seguridad de los scripts de rice antes de ejecutarlos + reglas de seguridad personalizadas.
+- Aislamiento en dos niveles de las dependencias del rice: estándar + sistema de prefijos controlados (beta).  
+  Si se encuentran enlaces simbólicos en un script de rice, tienen prioridad y el mecanismo estándar se desactiva.
 
-Wenn in einem Rice-Skript Symlinks gefunden werden, haben sie Priorität und der Standardmechanismus wird deaktiviert.
+### UX y calidad de vida
 
-### UX und Quality of Life
-
-- Konfiguriere die Rice-Wechsel-Animation (verwendet aktuell `swww`):
-  - Animationstyp
+- Configura la animación de cambio de rice (actualmente usa `swww`):
+  - tipo de animación
   - FPS
-  - Dauer
-  - Wellenwinkel
-- Zusätzliche Optionen:
-  - ein Rice nach dem Boot automatisch anwenden (optional)
-  - das Rice-Listen-Fenster nach der Auswahl offen lassen oder schließen
-  - Logging der Apply/Install-Zeit aktivieren
-- Mehrsprachige Unterstützung: derzeit werden 4 Sprachen unterstützt.
-- lastlayer-Parameter:
-  - das Interface-Theme wechseln
-  - grundlegende Sound-Steuerung
+  - duración
+  - ángulo de la onda
+- Opciones adicionales:
+  - aplicar un rice automáticamente tras el arranque (opcional)
+  - mantener o cerrar la ventana de lista de rices después de la selección
+  - habilitar el registro del tiempo de aplicación/instalación
+- Soporte multilingüe: actualmente se admiten 4 idiomas.
+- Parámetros de lastlayer:
+  - cambiar el tema de la interfaz
+  - control básico de sonido
 
-## Rice-Standard
+## Estándar de rice 🎨
 
-![](https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0) ![](https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9) ![](https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c)
-![](https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346)
+<table>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0" width="300">
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9" width="300">
+    </td>
+    <td align="center" valign="middle">
+      <img src="https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c" width="400"><br/>
+      <img src="https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346" width="187">
+    </td>
+  </tr>
+</table>
 
-### Rice-Karte (aktuell)
+### Tarjeta de rice (actual)
 
-Die Rice-Karte ist eines der zentralen Pop-ups und wird in zukünftigen Versionen erweitert.
+La tarjeta del rice es uno de los pop-ups principales y se ampliará en futuras versiones.
 
-Ein Rice sollte enthalten:
+Un rice debe incluir:
+- **Vista previa** (512x512 o 1024x1024)
+- **Enlace al repositorio**
+- **Autor** (el avatar se obtiene automáticamente desde Git)
+- **Autor de la adaptación** (opcional)
+- **Etiquetas** (opcional)
+- **Categoría de funcionalidad** (opcional; se permiten varias)
+- **Distribuciones compatibles** (opcional; si no se especifica, lastlayer genera la lista automáticamente basándose en el script)
 
-- **Vorschau** (512x512 oder 1024x1024)
-- **Repository-Link**
-- **Autor** (Avatar wird automatisch aus Git geparst)
-- **Adaptionsautor** (optional)
-- **Tags** (optional)
-- **Funktionskategorie** (optional; mehrere erlaubt)
-- **Unterstützte Distributionen** (optional; wenn nicht angegeben, generiert lastlayer die Liste automatisch basierend auf dem Skript)
+<details>
+<summary><b>Planificado</b></summary>
 
-Geplant
+- Conversión automática entre distribuciones y gestores de ventanas en mosaico
+- Sistema de valoración (más detalles en la hoja de ruta)
 
-- Automatische Konvertierung zwischen Distributionen und Tiling-Window-Managern
-- Bewertungssystem (mehr Details in der Roadmap)
+</details>
 
-## Ein vorhandenes Rice anpassen / ein neues erstellen
+## Adaptar un rice existente / crear uno nuevo 🎨
 
-In den ersten Versionen benötigt das Programm vorübergehend eine vorhersehbare Rice-Struktur.
+En las primeras versiones, el programa requiere temporalmente una estructura de rice predecible.
 
-### Minimal akzeptable Struktur (Hyprland)
+### Estructura mínima aceptable (Hyprland)
 
 ```text
 RICE_NAME/
@@ -129,7 +167,7 @@ RICE_NAME/
 ├── config/ (optional)
 ```
 
-### Empfohlene Struktur
+### Estructura recomendada
 
 ```text
 RICE_NAME/
@@ -150,48 +188,51 @@ RICE_NAME/
 ├── config/ (optional)
 ```
 
-### Dateibedeutungen
+### Significado de los archivos
 
-- `preview.png` – Bild, das dem Nutzer in der Rice-Liste angezeigt wird
-- `wallpaper.png` – Standard-Desktop-Hintergrund
-- `hyprland.conf` – Referenzen zu Hyprland-Konfigurationsdateien (direkte Parameter ohne Links sind ebenfalls möglich). Dateien, die zu dieser Konfiguration gehören, müssen in `hyprland/` liegen.
-- `lastlayer.conf` – lastlayer-Konfiguration, die das Umschalten konsistent hält, Hilfsterminals während des Umschaltens ausblendet und die erforderlichen Sichtbarkeitsattribute für das Programmfenster setzt.
+- `preview.png` – imagen que se muestra al usuario en la lista de rices
+- `wallpaper.png` – fondo de escritorio predeterminado
+- `hyprland.conf` – referencias a archivos de configuración de Hyprland (también son posibles parámetros directos sin enlaces). Los archivos relacionados con esta configuración deben colocarse en `hyprland/`.
+- `lastlayer.conf` – configuración de lastlayer que mantiene el cambio consistente, oculta terminales auxiliares durante el cambio y establece los atributos de visibilidad necesarios para la ventana del programa.
 
 ### start-scripts/
 
 - `install_theme_apps.sh` (optional)  
-  Installiert begleitende Anwendungen. Läuft nur bei der ersten Installation eines Rice.
+  Instala aplicaciones complementarias. Se ejecuta solo en la primera instalación de un rice.
 - `set_after_install_actions.sh`  
-  Startet begleitende Anwendungen. Läuft jedes Mal, wenn ein Rice angewendet wird.
+  Inicia aplicaciones complementarias. Se ejecuta cada vez que se aplica un rice.
 
 ### config/ (optional)
 
-Verzeichnis mit Konfigurationsdateien begleitender Anwendungen.
+Directorio con archivos de configuración de las aplicaciones complementarias.
 
 > [!TIP]
-> Beispiele findest du in den Preset-Rices im Bereich **lastlayer Network** (oder im Starter-Archiv oben). Sie folgen dem üblichen Muster, die Hyprland-Konfiguration in mehrere Dateien aufzuteilen und sie aus `hyprland.conf` zu referenzieren.
+> Para ver ejemplos, revisa los rices predefinidos en la sección **lastlayer Network** (o el archivo de inicio anterior). Siguen el patrón habitual de dividir la configuración de Hyprland en varios archivos y referenciarlos desde `hyprland.conf`.
 
-Notae zur Kompatibilität und zu Skripten (aktueller Ansatz)
+<details>
+<summary><b>Notas sobre compatibilidad y scripts (enfoque actual)</b></summary>
 
-- Vorerst erwartet lastlayer eine vorhersehbare Rice-Struktur. In zukünftigen Versionen wirst du Legacy-Rices ohne Umstrukturierung importieren können (Rices, die dieses Layout bereits einhalten, bleiben rückwärtskompatibel).
-- Rice-Skripte installieren und starten begleitende Anwendungen, um alle Aktionen transparent und leicht überprüfbar zu halten.
-- lastlayer erkennt potenziell gefährliche Befehle und führt sie ohne ausdrückliche Zustimmung des Nutzers nicht aus.
+- Por ahora, lastlayer espera una estructura de rice predecible. En versiones futuras podrás importar rices heredados sin reestructurarlos (los rices que ya sigan este diseño permanecerán retrocompatibles).
+- Los scripts del rice instalan y lanzan aplicaciones complementarias para que todas las acciones sean transparentes y fáciles de revisar.
+- lastlayer detecta comandos potencialmente peligrosos y no los ejecuta sin el consentimiento explícito del usuario.
 
-## Roadmap
+</details>
 
-- [x] Codebasis als Open Source veröffentlicht, Architektur für zukünftige Features vorbereitet
-- [x] Reddit-Rating-Metadaten und einen YouTube-Demo-Link in Rice-Karten integrieren
-- [ ] Rices über den gesamten PC-Flow wechseln (GRUB, rEFInd, Login-Screen)
-- [ ] Unterstützung weiterer populärer Window-Manager (Rices, Configs, Plugins)
-- [ ] Rices zwischen Window-Managern konvertieren/mappen (Modul für äquivalente Parameter) und Install/Apply-Pakete zwischen Distributionen konvertieren
-- [ ] Modul für Abwärtskompatibilität für Legacy-Rices
-- [ ] UI-Verbesserungen: Drag & Drop, Tag-Filter, Pagination für Network-Items
-- [ ] Experimentell: Wechsel nach aktuellem Arbeitsmodus oder nach Kontext des fokussierten Fensters
-- [ ] KI-Generierung von Umgebungen/Rices (prompt- und kontextbasiert)
+## Hoja de ruta 🔮
+
+- [x] Código abierto con una arquitectura preparada para futuras funciones
+- [x] Integrar metadatos de valoración de Reddit y un enlace de demo de YouTube en las tarjetas de rice
+- [ ] Cambiar rices a lo largo de todo el flujo del PC (GRUB, rEFInd, pantalla de inicio de sesión)
+- [ ] Dar soporte a otros gestores de ventanas populares (rices, configs, plugins)
+- [ ] Convertir/mapear rices entre gestores de ventanas (módulo de sistema de parámetros equivalentes) y convertir paquetes de instalación/aplicación entre distribuciones
+- [ ] Módulo de compatibilidad hacia atrás para rices heredados
+- [ ] Mejoras de UI: arrastrar y soltar, filtros por etiquetas, paginación para elementos de Network
+- [ ] Experimental: cambiar según el modo de trabajo actual o según el contexto de la ventana enfocada
+- [ ] Generación por IA de entornos/rices (basada en prompts y contexto)
 
 > [!NOTE]
-> Der Code ist seit v1.1 vollständig Open Source. Vorschläge und Issue-Reports sind willkommen.
+> El código es completamente de código abierto desde la v1.1. Se aceptan sugerencias e informes de issues.
 
-## Getestet auf ✅
+## Probado en ✅
 
 - Hyprland + Arch
