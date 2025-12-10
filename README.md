@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82"  />
+  <img width="50%" height="320" alt="image" src="https://github.com/user-attachments/assets/6e8706dc-2cba-4f34-a753-fb22cc662d82" />
 </div>
 
 <div align="center">
@@ -11,112 +11,143 @@
   <img src="https://img.shields.io/badge/Hyprland-%239566f2?style=for-the-badge&logoColor=white" />
 </div>
 
+# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475" /> lastlayer (llayer)
 
-
-# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475"  />lastlayer
-
-
-**A dynamic interface layer — a new abstraction above the desktop environment that lets you control the environment at multiple levels and transform it instantly.**
-
+**A dynamic interface layer - a new abstraction above the desktop environment that lets you control the environment at multiple levels and transform it instantly.**
 
 <p align="center">
-<img src="https://github.com/user-attachments/assets/6cce4101-8635-4d05-9522-dca663bcdffc" width="800" alt="image">
+  <img width="1594" height="1383" alt="image" src="https://github.com/user-attachments/assets/a8cf79e7-ad19-4686-8b66-7a5f7b8bf223" />
 </p>
+
+<details>
+<summary><b>Contents</b></summary>
+
+- [Update 1.1](#update-11)
+- [Installation](#installation-)
+- [Starter adapted rices (offline)](#starter-adapted-rices-offline)
+- [Features](#features-)
+- [Rice standard](#rice-standard-)
+- [Adapting a rice](#adapting-an-existing-rice--creating-a-new-one-)
+- [Roadmap](#roadmap-)
+- [Tested on](#tested-on-)
+</details>
+
+## Update 1.1
+
+1. The full source code has been opened (as previously planned).
+2. Countries/rices analytics have been removed.
+3. Added functionality to display and optionally send average install/apply speed metrics per theme (sending is disabled by default).
+4. Added the ability to fill in and view extra rice metadata: a Reddit post (with parsing of general data) and a YouTube link.
+5. Updated the rice (theme) card: implemented two display modes with a toggle switch: local theme and online theme.
+6. Added a settings menu to manage bar lists, enabling support for rarer and not-yet-included customizable bars and other widgets inside rices.
+7. Updated the restore point (save/restore) functionality.
+8. Improved the rice apply/install algorithm; both operations are now 30% faster under the same testing conditions.
+9. Improved the plugin system: added the ability to fix issues with the external hyprpm dependency inside the program, and to view internal terminal logs for other plugin operations.
+10. Prepared a broader architectural base for integrating rices of other levels (rEFInd, GRUB, SDDM, etc.) and for supporting other window compositors.
 
 ## Installation 📦
 
-1. **Clone the repository:**
 ```bash
 git clone https://github.com/llayerlinux/lastlayer.git
 cd lastlayer
-```
-2. **Run the installer script:**
-```bash
 ./install.sh
 ```
-**Dependencies:**  
-All required dependencies are installed automatically by the `install.sh` script — namely: **swww + yad + webkit2gtk**
 
-## Starter adapted rices (if the server is temporarily unavailable)
-https://drive.google.com/file/d/1OEnQnXGsMM4Hn7oMiFKOpse70jhFeQdT/view?usp=sharing
+> [!NOTE]
+> All required dependencies are installed automatically by `install.sh`: **swww**, **yad**, **webkit2gtk**.
 
-1. Download the archive via the link above and extract it
-2. Click “+” on the bottom button bar for local import
-3. Navigate to the rice directory in your file manager → Open
+## Starter adapted rices (offline)
 
----
+If the server is temporarily unavailable:
+
+1. Download and extract the archive:  
+   https://drive.google.com/file/d/1OEnQnXGsMM4Hn7oMiFKOpse70jhFeQdT/view?usp=sharing
+2. Click **+** on the bottom button bar for local import
+3. Navigate to the rice directory in your file manager and open it
 
 ## Features 💡
 
-1. **One‑click rice switching.**  
-   Switch between preinstalled rices from the list. Average apply time on click is ~2 seconds and will decrease with each new version.
+### Rice management
+- **One-click rice switching.** Average apply time is ~2 seconds (and keeps improving).
+- **Install rices** from the internet or **import locally** from the filesystem.
+- **Share rices.** Upload your own rices (dotfiles) to the server for public access.
+- **Edit/remove** the rice you uploaded from the GUI.
+- **Open the configuration repository**, view supported distributions, and sync core info via Git.
 
-2. **Install rices from the internet / local installation from the filesystem.**  
-   Import rices directly via the online tab.
+### Configs and plugins
+- Manage configurations through the GUI.
+- Manage plugins via the GUI:
+  - add plugin repositories
+  - add custom parameters to a plugin
+  - support different parameter types (for example, a color picker)
 
-3. **Rice sharing.**  
-   Upload your own rices (dotfiles) to the server for public access.
-4. **Ability to edit/remove the rice you uploaded from the GUI.**
-5. **View the configuration (rice) repository and supported distributions; basic git sync of core info.**
-6. **Manage configurations via the GUI interface.**
-7. **Manage plugins via the GUI; add plugin repositories; add custom parameters to a plugin; support for different parameter types (e.g., color picker).**
-8. **Fix problematic temporary states of supported tiling window managers.**
-9. **Save and restore external environment states.**
-10. **Security check of rice scripts before execution. Initialization of custom security rules.**
-11. **Two‑level isolation of rice dependencies: standard + controlled prefix system (beta). If symlinks are found in a rice script, they are recognized, symlinks get priority, and the standard mechanism is disabled.**
+### Stability tools
+- Fix problematic temporary states of supported tiling window managers.
+- Save and restore external environment states.
 
-12. **Configure the rice‑switch animation (temporarily uses the `swww` dependency).**  
-   Ability to change animation parameters in the GUI (animation type, FPS, duration, wave angle).
+### Security and isolation
+- Security check of rice scripts before execution + custom security rules.
+- Two-level isolation of rice dependencies: standard + controlled prefix system (beta).  
+  If symlinks are found in a rice script, they get priority and the standard mechanism is disabled.
 
-13. **Additional options:**  
-   - Auto‑apply a rice after boot (optional)  
-   - Keep or close the rice list window after selection (useful for quick browsing of several rices)  
-   - Enable logging of apply/install time
-
-14. **Multilingual support:**  
-   Currently 4 languages are supported.
-
-15. **lastlayer parameters**  
-    - Switch the interface theme,  
-    - Basic sound control
-
-
-
+### UX and quality of life
+- Configure the rice-switch animation (currently uses `swww`):
+  - animation type
+  - FPS
+  - duration
+  - wave angle
+- Additional options:
+  - auto-apply a rice after boot (optional)
+  - keep or close the rice list window after selection
+  - enable logging of apply/install time
+- Multilingual support: currently 4 languages are supported.
+- lastlayer parameters:
+  - switch the interface theme
+  - basic sound control
 
 ## Rice standard 🎨
+
 <table>
   <tr>
     <td align="center">
       <img src="https://github.com/user-attachments/assets/35e63df9-981f-4748-abe1-1e3f98dda7d0" width="300">
     </td>
     <td align="center">
-      <img  src="https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9"  width="300">
+      <img src="https://github.com/user-attachments/assets/a9feb54e-7a3f-4f9f-90c7-2f66886bccb9" width="300">
     </td>
     <td align="center" valign="middle">
       <img src="https://github.com/user-attachments/assets/dd231164-f0c9-438e-b805-9fff8acfee8c" width="400"><br/>
-      <img src="https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346"  width="187">
+      <img src="https://github.com/user-attachments/assets/04885899-f7f7-450d-ade2-799f0e8c5346" width="187">
     </td>
   </tr>
 </table>
 
-The rice card is one of the key pop-ups, which will expand as new versions are released.  
-At the moment, a rice should include:  
-- Preview (512x512, 1024x1024)
-- A link to the repository  
-- The author (avatar will be automatically parsed from Git)  
-- The adaptation author (optional)  
-- Tags (optional)  
-- A functionality category (optional, multiple allowed)  
-- Information about supported distributions (optional — if not specified, the program will generate the list automatically based on the script)  
+### Rice card (current)
 
-In the future, automatic conversion between distributions and tiling window managers will also be available here, along with a rating system (more details in the roadmap).
+The rice card is one of the core pop-ups and will expand in future versions.
 
+A rice should include:
+- **Preview** (512x512 or 1024x1024)
+- **Repository link**
+- **Author** (avatar is parsed automatically from Git)
+- **Adaptation author** (optional)
+- **Tags** (optional)
+- **Functionality category** (optional; multiple allowed)
+- **Supported distributions** (optional; if not specified, lastlayer generates the list automatically based on the script)
+
+<details>
+<summary><b>Planned</b></summary>
+
+- Automatic conversion between distributions and tiling window managers
+- Rating system (more details in the roadmap)
+</details>
 
 ## Adapting an existing rice / creating a new one 🎨
 
-In the first versions, the program will temporarily require adherence to the rice structure:
+In the first versions, the program temporarily requires a predictable rice structure.
 
-Minimal acceptable structure (if hyprland, for other tiling managers the structure will be different)
+### Minimal acceptable structure (Hyprland)
+
 ```text
 RICE_NAME/
 ├── preview.png
@@ -130,7 +161,8 @@ RICE_NAME/
 ├── config/ (optional)
 ```
 
-Full recommended structure of a rice should look like this:
+### Recommended structure
+
 ```text
 RICE_NAME/
 ├── preview.png
@@ -142,52 +174,61 @@ RICE_NAME/
 │   ├── general.conf
 │   ├── rules.conf
 │   ├── colors.conf
-│   └── keybinds.conf
-│   ├── lastlayer.conf
+│   ├── keybinds.conf
+│   └── lastlayer.conf
 └── start-scripts/
     ├── install_theme_apps.sh (optional)
     └── set_after_install_actions.sh
 ├── config/ (optional)
 ```
 
-`preview.png` — image shown to the user in the rice list  
-`wallpaper.png` — default desktop wallpaper
+### File meanings
 
-`hyprland.conf` — contains references to the configuration files for Hyprland (direct parameters without links are also possible); files related to this configuration must be placed in `hyprland/`  
-`lastlayer.conf` — the program’s configuration file that ensures consistent control when switching rices, hides auxiliary terminals during switching, and sets the required visibility attributes for the program window
+- `preview.png` - image shown to the user in the rice list
+- `wallpaper.png` - default desktop wallpaper
+- `hyprland.conf` - references to Hyprland config files (direct parameters without links are also possible). Files related to this configuration must be placed in `hyprland/`.
+- `lastlayer.conf` - lastlayer configuration that keeps switching consistent, hides auxiliary terminals during switching, and sets required visibility attributes for the program window.
 
-`start-scripts/`  
-- `install_theme_apps.sh` — script that installs accompanying applications; runs only on the first installation of a rice  
-- `set_after_install_actions.sh` — script that launches accompanying applications; runs every time a rice is applied
+### start-scripts/
 
-`config/` — directory with configuration files of accompanying applications
+- `install_theme_apps.sh` (optional)  
+  Installs accompanying applications. Runs only on the first installation of a rice.
+- `set_after_install_actions.sh`  
+  Launches accompanying applications. Runs every time a rice is applied.
 
-For simple understanding, you can look at the preset rices in the lastlayer network section or the set of rices in a separate archive — it is based on the best and popular practice of distributing responsibility across the 7 specified files with dynamic links in `hyprland.conf`.
+### config/ (optional)
 
----
-In future versions there will be no need to follow a rice structure (you will be able to import any old rice and it will be supported), and rices where this is already followed will maintain backward compatibility. It is also planned, as new versions are released and the program code is opened, to shift responsibility from rice scripts toward the program itself. Currently, lastlayer contains a lot of logic related to fast rice switching, on‑the‑fly solutions for incompatibilities between individual versions of applications accompanying the rice, as well as logic that solves other issues often encountered by experienced users. Rice scripts are responsible for installing the list of accompanying applications and launching them, to provide the user with full understanding and transparency of all actions performed in the system (and if you don’t feel like reviewing them, the program itself will determine potentially dangerous commands and will not allow the script to run without the user’s consent).
+Directory with configuration files of accompanying applications.
 
+> [!TIP]
+> For examples, check the preset rices in the lastlayer Network section (or the starter archive above). They follow the common pattern of splitting Hyprland config into multiple files and referencing them from `hyprland.conf`.
 
+<details>
+<summary><b>Notes about compatibility and scripts (current approach)</b></summary>
+
+- For now, lastlayer expects a predictable rice structure. In future versions you will be able to import legacy rices without restructuring them (rices that already follow this layout will stay backward compatible).
+- Rice scripts install and launch accompanying applications to keep all actions transparent and easy to review.
+- lastlayer detects potentially dangerous commands and will not run them without explicit user consent.
+
+</details>
 
 ## Roadmap 🔮
 
-1. **Add the ability to easily switch rices across the whole PC flow (rices for GRUB boot screens, rEFInd, login screen rices).**
+- [x] Open-sourced the codebase with architecture prepared for future features
+- [x] Integrate Reddit rating metadata and a YouTube demo link into rice cards
 
-2. **Support for other popular window managers (management of rices, configurations, plugins).**
+- [ ] Switch rices across the whole PC flow (GRUB, rEFInd, login screen)
+- [ ] Support other popular window managers (rices, configs, plugins)
+- [ ] Convert/map rices between window managers (equivalent-parameter system module) and convert install/apply packages between distributions
+- [ ] Backward compatibility module for legacy rices
+- [ ] UI improvements: drag and drop, tag filters, pagination for Network items
+- [ ] Experimental: switch by current work mode, or by context of the focused window
+- [ ] AI generation of environments/rices (prompt and context based)
 
-3. **Ability to convert/map rices between different window managers (equivalent‑parameter system module), convert installation and apply packages between different distributions.**
 
-4. **Mechanism to support backward compatibility for old rices and those that will eventually become old (equivalent‑parameter system module).**
+> [!NOTE]
+> Code is fully open source since v1.1. Suggestions and issue reports are welcome
 
-5. **Integrate ratings for rices by reading and updating external APIs (reddit, git) + a possible internal rating and author motivation system.**
+## Tested on ✅
 
-6. **General program improvements: drag & drop on theme elements, grouping and filtering rices by tags, pagination of network elements, etc.**
-
-7. **Experimental features to validate the practical usefulness of rices: apply by current work mode, apply by context of the selected window.**
-
-8. **AI generation of environments/rices — a large module that allows generating the environment based on prompts or the context of actions.**
-
-**Also considering fully open‑sourcing the code in the near future and being ready to accept changes in git.**
-
----
-✅ Tested on Hyprland + Arch
+- Hyprland + Arch
