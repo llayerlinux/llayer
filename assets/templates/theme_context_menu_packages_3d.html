@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; }
+body {
+    position: relative;
+    width: 300px;
+    height: 200px;
+    background: transparent;
+    overflow: hidden;
+    cursor: grab;
+}
+body:active { cursor: grabbing; }
+#container,
+#labels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 300px;
+    height: 200px;
+}
+#labels {
+    pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div id="container"></div>
+<svg id="labels"></svg>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const LEVEL = {{LEVEL}};
+const LABELS = {{LABELS}};
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(40, 300/200, 0.1, 100);
+camera.position.set(3, 1.2, 5);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(300, 200);
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('container').appendChild(renderer.domElement);
+
+const ambient = new THREE.AmbientLight(0x404055, 0.6);
+scene.add(ambient);
+
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+mainLight.position.set(5, 10, 7);
+mainLight.castShadow = true;
+scene.add(mainLight);
+
+const fillLight = new THREE.DirectionalLight(0x8090a0, 0.5);
+fillLight.position.set(-5, 3, -5);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0x6080a0, 0.4);
+rimLight.position.set(0, -3, 5);
+scene.add(rimLight);
+
+const segH = 0.5, rad = 1;
+const group = new THREE.Group();
+
+for (let i = 0; i < 6; i++) {
+    const filled = (i + 1) <= LEVEL;
+    const geo = new THREE.CylinderGeometry(rad, rad, segH, 48);
+    const mat = new THREE.MeshStandardMaterial({
+        color: filled ? 0x3a5a7a : 0x7a8a9a,
+        metalness: filled ? 0.75 : 0.55,
+        roughness: filled ? 0.3 : 0.4,
+        emissive: filled ? 0x1a2a3a : 0x2a3a4a,
+        emissiveIntensity: 0.1
+    });
+    const seg = new THREE.Mesh(geo, mat);
+    seg.position.y = (i - 2.5) * segH;
+    seg.castShadow = true;
+    seg.receiveShadow = true;
+    group.add(seg);
+    if (i < 5) {
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(rad + 0.01, 0.04, 12, 48),
+            new THREE.MeshStandardMaterial({ color: 0x2a3545, metalness: 0.9, roughness: 0.2 })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = (i - 2) * segH;
+        group.add(ring);
+    }
+}
+const capMat = new THREE.MeshStandardMaterial({ color: 0x5a6a7a, metalness: 0.8, roughness: 0.25 });
+const topCap = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.08, 48), capMat);
+topCap.position.y = 2.5 * segH + 0.04;
+group.add(topCap);
+const botCap = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.08, 48), capMat);
+botCap.position.y = -2.5 * segH - 0.04;
+group.add(botCap);
+group.position.x = -1.8;
+scene.add(group);
+
+let isDragging = false, prevX = 0, prevY = 0;
+let rotY = 0.4, rotX = 0.25;
+group.rotation.y = rotY;
+group.rotation.x = rotX;
+
+document.addEventListener('mousedown', e => { isDragging = true; prevX = e.clientX; prevY = e.clientY; });
+document.addEventListener('mouseup', () => isDragging = false);
+document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    rotY += (e.clientX - prevX) * 0.01;
+    rotX += (e.clientY - prevY) * 0.005;
+    rotX = Math.max(-0.5, Math.min(0.5, rotX));
+    prevX = e.clientX; prevY = e.clientY;
+    group.rotation.y = rotY;
+    group.rotation.x = rotX;
+    render();
+});
+
+function drawLabels() {
+    const svg = document.getElementById('labels');
+    svg.setAttribute('viewBox', '0 0 300 200');
+    svg.innerHTML = '';
+    LABELS.forEach((d, i) => {
+        const y3d = (d.level - 1 - 2.5) * segH;
+        const v = new THREE.Vector3(rad, y3d, 0);
+        v.applyQuaternion(group.quaternion);
+        v.add(group.position);
+        const pos = v.project(camera);
+        const x = (pos.x * 0.5 + 0.5) * 300;
+        const y = (-pos.y * 0.5 + 0.5) * 200;
+        const x2 = x + 20, y2 = y - 12, x3 = x2 + 35;
+        const lineCol = d.filled ? 'rgba(140,170,200,0.85)' : 'rgba(100,120,140,0.6)';
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M '+x+' '+y+' L '+x2+' '+y2+' L '+x3+' '+y2);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', lineCol);
+        path.setAttribute('stroke-width', '1');
+        svg.appendChild(path);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', x3 + 4);
+        txt.setAttribute('y', y2 + 3);
+        txt.setAttribute('fill', d.filled ? 'rgba(220,235,250,0.95)' : 'rgba(150,165,180,0.75)');
+        txt.setAttribute('font-size', '9');
+        txt.setAttribute('font-family', 'system-ui');
+        txt.textContent = d.code + ': ' + d.name;
+        svg.appendChild(txt);
+    });
+}
+
+function render() {
+    renderer.render(scene, camera);
+    drawLabels();
+}
+render();
+</script>
+</body>
+</html>

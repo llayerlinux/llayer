@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; }
+body {
+    position: relative;
+    width: 200px;
+    height: 130px;
+    background: transparent;
+    overflow: hidden;
+    cursor: default;
+}
+#container,
+#labels {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 130px;
+}
+#labels {
+    pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div id="container"></div>
+<svg id="labels"></svg>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const LEVEL = {{LEVEL}};
+const LABELS = {{LABELS}};
+const W = 200, H = 130;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
+camera.position.set(2.5, 1, 4);
+camera.lookAt(0, 0, 0);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: false });
+renderer.setSize(W, H);
+renderer.setClearColor(0x000000, 0);
+renderer.shadowMap.enabled = true;
+document.getElementById('container').appendChild(renderer.domElement);
+const ambient = new THREE.AmbientLight(0x404055, 0.6);
+scene.add(ambient);
+const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+mainLight.position.set(5, 10, 7);
+mainLight.castShadow = true;
+scene.add(mainLight);
+const fillLight = new THREE.DirectionalLight(0x8090a0, 0.5);
+fillLight.position.set(-5, 3, -5);
+scene.add(fillLight);
+const segH = 0.4, rad = 0.8;
+const group = new THREE.Group();
+const meshes = [];
+for (let i = 0; i < 6; i++) {
+    const filled = (i + 1) <= LEVEL;
+    const geo = new THREE.CylinderGeometry(rad, rad, segH, 32);
+    const mat = new THREE.MeshStandardMaterial({
+        color: filled ? 0x3a5a7a : 0x7a8a9a,
+        metalness: filled ? 0.75 : 0.55,
+        roughness: filled ? 0.3 : 0.4,
+        emissive: filled ? 0x1a2a3a : 0x2a3a4a,
+        emissiveIntensity: 0.1
+    });
+    const seg = new THREE.Mesh(geo, mat);
+    seg.position.y = (i - 2.5) * segH;
+    seg.castShadow = true;
+    seg.receiveShadow = true;
+    group.add(seg);
+    meshes.push(seg);
+    if (i < 5) {
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(rad + 0.01, 0.03, 8, 32),
+            new THREE.MeshStandardMaterial({ color: 0x2a3545, metalness: 0.9, roughness: 0.2 })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = (i - 2) * segH;
+        group.add(ring);
+        meshes.push(ring);
+    }
+}
+const capMat = new THREE.MeshStandardMaterial({ color: 0x5a6a7a, metalness: 0.8, roughness: 0.25 });
+const topCap = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.06, 32), capMat);
+topCap.position.y = 2.5 * segH + 0.03;
+group.add(topCap);
+meshes.push(topCap);
+const botCap = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 0.06, 32), capMat);
+botCap.position.y = -2.5 * segH - 0.03;
+group.add(botCap);
+meshes.push(botCap);
+group.position.x = -2.8;
+scene.add(group);
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+function isOnCylinder(e) {
+    mouse.x = (e.clientX / W) * 2 - 1;
+    mouse.y = -(e.clientY / H) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    return raycaster.intersectObjects(meshes).length > 0;
+}
+let isDragging = false, prevX = 0, prevY = 0;
+let rotY = 0.4, rotX = 0.25;
+group.rotation.y = rotY;
+group.rotation.x = rotX;
+document.addEventListener('mousedown', e => {
+    if (isOnCylinder(e)) {
+        isDragging = true;
+        prevX = e.clientX;
+        prevY = e.clientY;
+        document.body.style.cursor = 'grabbing';
+    }
+});
+document.addEventListener('mouseup', e => {
+    if (!isDragging && !isOnCylinder(e)) {
+        window.location.href = 'collapse:';
+    }
+    isDragging = false;
+    document.body.style.cursor = isOnCylinder(e) ? 'grab' : 'default';
+});
+document.addEventListener('mousemove', e => {
+    if (isDragging) {
+        rotY += (e.clientX - prevX) * 0.01;
+        rotX += (e.clientY - prevY) * 0.005;
+        rotX = Math.max(-0.5, Math.min(0.5, rotX));
+        prevX = e.clientX; prevY = e.clientY;
+        group.rotation.y = rotY;
+        group.rotation.x = rotX;
+        render();
+    } else {
+        document.body.style.cursor = isOnCylinder(e) ? 'grab' : 'default';
+    }
+});
+function drawLabels() {
+    const svg = document.getElementById('labels');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.innerHTML = '';
+    LABELS.forEach((d) => {
+        const y3d = (d.level - 1 - 2.5) * segH;
+        const v = new THREE.Vector3(rad, y3d, 0);
+        v.applyQuaternion(group.quaternion);
+        v.add(group.position);
+        const pos = v.project(camera);
+        const x = (pos.x * 0.5 + 0.5) * W;
+        const y = (-pos.y * 0.5 + 0.5) * H;
+        const x2 = x + 12, y2 = y - 8, x3 = x2 + 25;
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M '+x+' '+y+' L '+x2+' '+y2+' L '+x3+' '+y2);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'rgba(140,170,200,0.85)');
+        path.setAttribute('stroke-width', '1');
+        svg.appendChild(path);
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', x3 + 3);
+        txt.setAttribute('y', y2 + 3);
+        txt.setAttribute('fill', 'rgba(220,235,250,0.95)');
+        txt.setAttribute('font-size', '8');
+        txt.setAttribute('font-family', 'system-ui');
+        txt.textContent = d.code + ': ' + d.name;
+        svg.appendChild(txt);
+    });
+}
+function render() {
+    renderer.render(scene, camera);
+    drawLabels();
+}
+render();
+</script>
+</body>
+</html>
