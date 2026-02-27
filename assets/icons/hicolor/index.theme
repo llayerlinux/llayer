@@ -1,0 +1,11 @@
+[Icon Theme]
+Name=Hicolor
+Comment=LastLayer test fallback theme
+Directories=scalable/actions
+
+[scalable/actions]
+Size=16
+MinSize=16
+MaxSize=512
+Type=Scalable
+Context=Actions

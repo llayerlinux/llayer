@@ -1,0 +1,19 @@
+export const DEFAULT_BACKUP_FOLDERS = [
+    'fish',
+    'alacritty',
+    'kitty',
+    'waybar',
+    'eww',
+    'ags',
+    'starship',
+    'wlogout',
+    'rofi',
+    'dunst',
+    'cava',
+    'btop',
+    'picom',
+    'swaync',
+    'wluma',
+    'wofi',
+    'default_wallpapers'
+];

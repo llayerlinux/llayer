@@ -1,0 +1,4 @@
+.idea
+/unit_tests/
+/smoke_tests/
+/ci/

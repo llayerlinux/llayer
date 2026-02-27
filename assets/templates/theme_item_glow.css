@@ -1,0 +1,8 @@
+    border-radius: 12px;
+    border-color: rgb({{R}}, {{G}}, {{B}});
+    box-shadow: 0 0 5px rgba({{R}}, {{G}}, {{B}}, 1),
+                0 0 10px rgba({{R}}, {{G}}, {{B}}, 0.85),
+                0 0 15px rgba({{R}}, {{G}}, {{B}}, 0.6),
+                0 0 20px rgba({{R}}, {{G}}, {{B}}, 0.4),
+                0 0 26px rgba({{R}}, {{G}}, {{B}}, 0.25);
+}
