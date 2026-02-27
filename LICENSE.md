@@ -645,7 +645,7 @@ the "copyright" line and a pointer to where the full notice is found.
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-You can contact us through: https://llayer.tech + llayerfb@gmail.com
+You can contact us through: llayerfb@gmail.com
 
   If your software can interact with users remotely through a computer
 network, you should also make sure that it provides a way for users to

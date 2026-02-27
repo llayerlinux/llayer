@@ -36,7 +36,7 @@
 - [Advanced Hotkey Configuration Management System](#advanced-hotkey-configuration-management-system)
 - [Process Level. Widgets](#process-level-widgets)
 - [Roadmap](#roadmap)
-- [Tested on](#tested-on)
+- [Credits](#credits)
 
 </details>
 
@@ -549,9 +549,9 @@ The list of running rice-associated processes also includes the dependency isola
 - [x] Add Reddit score parsing and a YouTube demo link to rice cards
 - [x] Extend the dependency isolation system
 - [x] Build an advanced parameter management system
-- [x] Unify imported rices during import (normalization)
-- [x] Enable "fly-apply" (apply a rice directly from the browser)
-- [x] Implement reverse immersion
+- [x] Unify imported rices during import (normalization)  *
+- [x] Enable "fly-apply" (apply a rice directly from the browser) *
+- [x] Implement reverse immersion  *
 - [x] Provide backward compatibility for legacy rices
 - [x] Implement an advanced hotkey management system (a three-level model, analogous to the parameter system)
 - [ ] Support other popular window managers (rices, configs, plugins) (partially implemented)
@@ -561,8 +561,20 @@ The list of running rice-associated processes also includes the dependency isola
 
 - [ ] Switch rices across the full PC stack (+L7-L8) (GRUB, rEFInd, login screen)
 
-> [!NOTE]
-> Code is fully open source since v1.1. Suggestions and issue reports are welcome
+
+<a id="credits"></a>
+## Credits
+
+To demonstrate how LastLayer works in practice, the starter demo-rices were prepared using original rices by:
+
+- [LoneWolf4713](https://github.com/LoneWolf4713) (auspicious, seraphic)
+- [flickowoa](https://github.com/flickowoa) (dreamy, yorha)
+- [end-4](https://github.com/end-4) (illogical-impulse)
+- [qxb3](https://github.com/qxb3) (yume)
+- [hayyaoe](https://github.com/hayyaoe) (zenities)
+
+Thank you to all of these authors for publishing their work and making this starter showcase possible.
+
 
 <a id="tested-on"></a>
 ## Tested on ✅
