@@ -6,6 +6,7 @@ import { applyAppInstanceManager } from './AppInstanceManager.js';
 import { applyAppOverrides } from './AppOverrides.js';
 import { applyAppInitialization } from './AppInitialization.js';
 import { applyAppRuntime } from './AppRuntime.js';
+import { tryOrNullAsync } from '../infrastructure/utils/ErrorUtils.js';
 
 export class LastLayerApp {
     constructor() {
@@ -23,7 +24,9 @@ export class LastLayerApp {
         this.lockUpdaterId = null;
         this.lockFilePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'lastlayer_popup.lock']);
         this.commandFilePath = GLib.build_filenamev([GLib.get_user_cache_dir(), 'lastlayer_popup_command.txt']);
+        this.commandQueueDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'lastlayer_popup_commands']);
         this.themeSelectorView = null;
+        this.inboxWatcher = null;
     }
 }
 
@@ -50,9 +53,17 @@ GLibUnix?.signal_add && (() => {
     });
 })();
 
-(async () => {
-    await app.run();
-})().catch((error) => {
-    logError(error, '[App] Fatal error');
+const runApp = async () => {
+    const started = await tryOrNullAsync('App.main.run', async () => {
+        await app.run();
+        return true;
+    });
+
+    if (started) {
+        return;
+    }
+
     app.shutdown();
-});
+};
+
+runApp();

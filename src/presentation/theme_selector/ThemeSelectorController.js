@@ -33,8 +33,9 @@ export class ThemeSelectorController {
         this.uploadThemeUseCase = dependencies.uploadThemeUseCase || null;
         this.container = dependencies.container || null;
 
-        const translator = dependencies.translator || this.getTranslator(dependencies.container);
-        this.translator = translator || ((key) => key);
+        this.translator = typeof dependencies.translator === 'function'
+            ? dependencies.translator
+            : null;
 
         this.timers = new TimerManager();
 

@@ -1,6 +1,8 @@
 import {copyPrototypeDescriptors} from '../../../infrastructure/utils/PrototypeMixins.js';
+import GLib from 'gi://GLib';
 import {TabType, LoadingState} from '../../common/Constants.js';
 import { Events } from '../../../app/eventBus.js';
+import { tryOrNull, tryOrNullAsync } from '../../../infrastructure/utils/ErrorUtils.js';
 import { isObjectLike } from '../../../infrastructure/utils/Utils.js';
 
 class ThemeSelectorControllerCore {
@@ -96,10 +98,14 @@ class ThemeSelectorControllerCore {
 
     setSettingsRefreshOverride(flags = {}) {
         const hasOverrideFlag = this.hasOwn(flags, 'languageChanged') || this.hasOwn(flags, 'themeChanged');
-        isObjectLike(flags) && hasOverrideFlag && (this.settingsRefreshOverride = {
+        if (!isObjectLike(flags) || !hasOverrideFlag) {
+            return;
+        }
+
+        this.settingsRefreshOverride = {
             languageChanged: !!flags.languageChanged,
             themeChanged: !!flags.themeChanged
-        });
+        };
     }
 
     async initialize() {
@@ -138,18 +144,18 @@ class ThemeSelectorControllerCore {
         const hasInvalidBus = this.eventBusSubscribed
             || typeof this.eventBus?.on !== 'function'
             || typeof this.eventBus?.emit !== 'function';
-        return hasInvalidBus
-            ? undefined
-            : (() => {
-                this.eventBusSubscribed = true;
+        if (hasInvalidBus) {
+            return;
+        }
 
-                const subscribe = (eventName, callback) => {
-                    this.eventBusListeners.push({eventName, listenerId: this.eventBus.on(eventName, callback)});
-                };
+        this.eventBusSubscribed = true;
 
-                const events = isObjectLike(this.eventBus.Events) ? this.eventBus.Events : {};
-                Object.entries(this.buildEventHandlersMap(events)).forEach(([event, handler]) => subscribe(event, handler));
-            })();
+        const subscribe = (eventName, callback) => {
+            this.eventBusListeners.push({eventName, listenerId: this.eventBus.on(eventName, callback)});
+        };
+
+        const events = isObjectLike(this.eventBus.Events) ? this.eventBus.Events : {};
+        Object.entries(this.buildEventHandlersMap(events)).forEach(([event, handler]) => subscribe(event, handler));
     }
 
     buildEventHandlersMap(events = {}) {
@@ -182,6 +188,8 @@ class ThemeSelectorControllerCore {
 
             [E.THEME_REPOSITORY_UPDATED]: () => this.handleRepositoryUpdated(),
             [E.THEME_UPDATED]: (data) => this.handleThemeUpdated(data),
+            [E.INBOX_THEME_IMPORTED]: (data) => this.handleInboxThemeImported(data),
+            [E.THEMES_LOCAL_UPDATED]: () => this.scheduleLocalReload(150),
 
             [E.THEME_DOWNLOAD_CANCELLED]: (payload) => this.handleDownloadCancelled(payload),
             [E.THEME_DOWNLOAD_COMPLETE]: (data) => this.handleDownloadComplete(data),
@@ -199,10 +207,13 @@ class ThemeSelectorControllerCore {
         this.store.setCurrentTheme(themeName);
 
         let found = this.getCombinedThemes().find((theme) => isObjectLike(theme) && theme.name === themeName);
-        found && this.store.selectTheme(found);
+        if (found) {
+            this.store.selectTheme(found);
+        }
 
-        this.getCurrentStoreTab() === TabType.NETWORK
-            && this.view?.updateThemesList?.(this.getStoreArray('networkThemes'));
+        if (this.getCurrentStoreTab() === TabType.NETWORK) {
+            this.view?.updateThemesList?.(this.getStoreArray('networkThemes'));
+        }
         this.view?.updateCurrentThemeStyles?.(themeName);
     }
 
@@ -240,6 +251,138 @@ class ThemeSelectorControllerCore {
             });
     }
 
+    rememberImportingTheme(themeName) {
+        this.importingThemes ||= new Set();
+        if (themeName) {
+            this.importingThemes.add(themeName);
+        }
+    }
+
+    triggerImportedThemeReload() {
+        const loadPromise = this.loadLocalThemes({force: true});
+        loadPromise && tryOrNullAsync('ThemeSelectorControllerCore.triggerImportedThemeReload', () => loadPromise);
+
+        this.timers?.debounce?.('inboxImportReload', () => {
+            tryOrNullAsync(
+                'ThemeSelectorControllerCore.triggerImportedThemeReload.debounced',
+                () => this.loadLocalThemes({force: true})
+            );
+            this.timers?.debounce?.('inboxImportClear', () => this.importingThemes?.clear?.(), 500);
+        }, 500);
+    }
+
+    getImportedThemeApplyDelay(settings, flyMode = false) {
+        if (!flyMode) {
+            return this.getTimeoutSetting('regularApplyDelay', 1500);
+        }
+
+        const flyParallelApply = settings?.flyParallelApply !== false;
+        return flyParallelApply
+            ? this.getTimeoutSetting('flyApplyDelay', 500)
+            : this.getTimeoutSetting('regularApplyDelay', 1500);
+    }
+
+    scheduleImportedThemeAutoApply(themeName, settings, flyMode = false) {
+        if (!themeName || !flyMode) return;
+        if (settings?.autoApplyAfterImport === false) return;
+
+        const applyDelay = this.getImportedThemeApplyDelay(settings, flyMode);
+        this.timers?.debounce?.(
+            `inboxAutoApply:${themeName}`,
+            () => this.autoApplyImportedTheme(themeName, flyMode),
+            applyDelay
+        );
+    }
+
+    handleInboxThemeImported(data) {
+        if (!this.isReady()) return;
+
+        const safeData = isObjectLike(data) ? data : {};
+        const themeName = this.extractThemeName(safeData);
+        const flyModeEnabled = safeData.flyModeEnabled === true;
+        this.themeRepository?.clearCache?.();
+        this.scheduleLocalReload(100);
+        const settings = this.getEffectiveSettings();
+        this.rememberImportingTheme(themeName);
+        this.triggerImportedThemeReload();
+        this.scheduleImportedThemeAutoApply(themeName, settings, flyModeEnabled);
+    }
+
+    findLocalThemeByName(themeName) {
+        if (!themeName) return null;
+
+        return this.getStoreArray('localThemes').find(
+            (item) => isObjectLike(item) && item.name === themeName
+        ) || null;
+    }
+
+    scheduleAutoApplyRetry(themeName, flyMode = false) {
+        const retryDelay = flyMode
+            ? this.getTimeoutSetting('flyRetryDelay', 300)
+            : this.getTimeoutSetting('regularRetryDelay', 1000);
+
+        this.timers?.debounce?.(`inboxAutoApplyRetry:${themeName}`, () => {
+            this.findLocalThemeByName(themeName) && this.executeAutoApply(themeName, flyMode);
+        }, retryDelay);
+    }
+
+    autoApplyImportedTheme(themeName, flyMode = false) {
+        if (!themeName || !this.isReady()) return;
+
+        if (!this.findLocalThemeByName(themeName)) {
+            this.scheduleAutoApplyRetry(themeName, flyMode);
+            return;
+        }
+
+        this.executeAutoApply(themeName, flyMode);
+    }
+
+    emitFlyInstallWarning(themeName, requiredInstallSteps) {
+        if (!themeName || requiredInstallSteps.length === 0) return;
+
+        this.eventBus?.emit?.(Events.UNIFIER_LOG, {
+            message: `WARNING ${themeName}: requires install for ${requiredInstallSteps.join(', ')} (run Install first)`,
+            level: 'warning',
+            source: 'FlyImport'
+        });
+    }
+
+    buildAutoApplyOptions(themeName, flyMode = false) {
+        const applyOptions = {};
+        if (!flyMode || this.getEffectiveSettings()?.flySkipInstallScript !== true) {
+            return applyOptions;
+        }
+
+        applyOptions.flySkipInstallScript = true;
+        const requiredInstallSteps = this.getRequiredInstallSteps(themeName);
+        this.emitFlyInstallWarning(themeName, requiredInstallSteps);
+        return applyOptions;
+    }
+
+    finalizeAutoApplyExecution(themeName, execution) {
+        if (!execution || typeof execution.then !== 'function') {
+            this.autoApplyingThemes.delete(themeName);
+            return;
+        }
+
+        tryOrNullAsync('ThemeSelectorControllerCore.finalizeAutoApplyExecution', () => execution)
+            .finally(() => this.autoApplyingThemes.delete(themeName));
+    }
+
+    executeAutoApply(themeName, flyMode = false) {
+        if (!themeName || !this.isReady() || this.autoApplyingThemes.has(themeName)) return;
+
+        this.autoApplyingThemes.add(themeName);
+
+        const theme = this.findLocalThemeByName(themeName);
+        theme && this.store.selectTheme(theme);
+        this.store.setCurrentTheme(themeName);
+
+        const applyOptions = this.buildAutoApplyOptions(themeName, flyMode);
+        const execution = this.executeApplyTheme?.(themeName, applyOptions);
+        this.finalizeAutoApplyExecution(themeName, execution);
+    }
+
     handleDownloadCancelled(payload = {}) {
         const safePayload = isObjectLike(payload) ? payload : {};
         const themeName = isObjectLike(safePayload.theme) ? safePayload.theme.name : null;
@@ -259,13 +402,16 @@ class ThemeSelectorControllerCore {
             completeKey: this.getDownloadKey(safeData.theme)
         };
 
-        completeKey
-            && (this.downloading.delete(completeKey),
-                this.view?.setDownloadState?.(completeKey, {
-                    status: 'complete',
-                    progress: 100
-                }));
-        themeName && this.addLocalThemeToStore(themeName);
+        if (completeKey) {
+            this.downloading.delete(completeKey);
+            this.view?.setDownloadState?.(completeKey, {
+                status: 'complete',
+                progress: 100
+            });
+        }
+        if (themeName) {
+            this.addLocalThemeToStore(themeName);
+        }
         this.scheduleLocalReload(350);
 
         await this.maybeAutoApplyDownloadedTheme(
@@ -281,7 +427,9 @@ class ThemeSelectorControllerCore {
             isObjectLike(data) ? data.localName : null
         );
         let themeName = typeof rawName === 'string' ? rawName.trim() : null;
-        safeTheme && themeName && !safeTheme.name && (safeTheme.name = themeName);
+        if (safeTheme && themeName && !safeTheme.name) {
+            safeTheme.name = themeName;
+        }
         return themeName;
     }
 
@@ -325,6 +473,41 @@ class ThemeSelectorControllerCore {
             : this.getSettingsFromService();
     }
 
+    getTimeoutSetting(key, defaultValue) {
+        const value = this.getEffectiveSettings()?.timeouts?.[key];
+        return typeof value === 'number' && Number.isFinite(value) ? value : defaultValue;
+    }
+
+    getThemeMetadataPath(themeName) {
+        if (!themeName) return null;
+        const basePath = this.themeRepository?.basePath
+            || GLib.build_filenamev([GLib.get_home_dir(), '.config', 'themes']);
+        return GLib.build_filenamev([basePath, themeName, 'lastlayer-metadata.json']);
+    }
+
+    readThemeMetadata(themeName) {
+        const metadataPath = this.getThemeMetadataPath(themeName);
+        if (!(metadataPath && GLib.file_test(metadataPath, GLib.FileTest.EXISTS))) return null;
+
+        const [ok, content] = tryOrNull(
+            'ThemeSelectorControllerCore.readThemeMetadata.read',
+            () => GLib.file_get_contents(metadataPath)
+        ) || [];
+        if (!ok) return null;
+
+        return tryOrNull(
+            'ThemeSelectorControllerCore.readThemeMetadata.parse',
+            () => JSON.parse(new TextDecoder().decode(content))
+        );
+    }
+
+    getRequiredInstallSteps(themeName) {
+        const requiresInstall = this.readThemeMetadata(themeName)?.unifier?.requiresInstallScript;
+        return Array.isArray(requiresInstall)
+            ? requiresInstall.filter((item) => typeof item === 'string' && item.length > 0)
+            : [];
+    }
+
     trySubscribeToEventBus() {
         !this.eventBusSubscribed && this.setupEventBusSubscriptions();
     }
@@ -336,10 +519,12 @@ class ThemeSelectorControllerCore {
         return this.applyThemeUseCase.execute(themeName, {
             ...extraOptions,
             onUIUpdate: (result, appliedTheme, elapsedTime) => {
-                this.isReady() && (
-                    this.handleApplyResult(result, appliedTheme, this.getSettingsFromService(), elapsedTime),
-                    userOnUIUpdate && userOnUIUpdate(result, appliedTheme, elapsedTime)
-                );
+                if (!this.isReady()) {
+                    return;
+                }
+
+                this.handleApplyResult(result, appliedTheme, this.getSettingsFromService(), elapsedTime);
+                userOnUIUpdate?.(result, appliedTheme, elapsedTime);
             }
         });
     }

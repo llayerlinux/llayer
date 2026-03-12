@@ -2,6 +2,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=3.0';
 import Gdk from 'gi://Gdk?version=3.0';
 import * as VIEW_UTILS from '../common/ViewUtils.js';
+import { tryOrNullAsync } from '../../infrastructure/utils/ErrorUtils.js';
 
 export class MoreSectionsView {
     constructor(controller, logger = null) {
@@ -50,56 +51,32 @@ export class MoreSectionsView {
     }
 
     getSectionDefinitions(t) {
-        return [
-            {
-                name: t('FIX_HYPRLAND_SECTION', 'Fix Hyprland'),
-                preview: `${this.currentDir}/assets/fix_hyperland.png`,
-                description: t('FIX_HYPRLAND_SECTION_DESC'),
-                type: 'fix-hyprland'
-            },
-            {
-                name: t('CONTEST_SECTION_NAME', 'Contest'),
-                preview: `${this.currentDir}/assets/kingsOfRices.png`,
-                description: t('CONTEST_SECTION_DESC'),
-                badge: `${this.currentDir}/assets/dev.png`,
-                type: 'contest'
-            },
-            {
-                name: t('DEV_SECTION_NAME', 'Dev Tools'),
-                preview: `${this.currentDir}/assets/dynamic_ai.png`,
-                description: t('DEV_SECTION_DESC'),
-                badge: `${this.currentDir}/assets/dev.png`,
-                type: 'dev'
-            },
-            {
-                name: t('CLI_SECTION_NAME', 'CLI'),
-                preview: `${this.currentDir}/assets/cli.png`,
-                description: t('CLI_SECTION_DESC'),
-                badge: `${this.currentDir}/assets/dev.png`,
-                type: 'cli'
-            },
-            {
-                name: t('GRUB_SECTION_NAME', 'GRUB'),
-                preview: `${this.currentDir}/assets/grub.png`,
-                description: t('GRUB_SECTION_DESC'),
-                badge: `${this.currentDir}/assets/dev.png`,
-                type: 'grub'
-            },
-            {
-                name: t('REFIND_SECTION_NAME', 'rEFInd'),
-                preview: `${this.currentDir}/assets/refind.png`,
-                description: t('REFIND_SECTION_DESC'),
-                badge: `${this.currentDir}/assets/dev.png`,
-                type: 'refind'
-            },
-            {
-                name: t('LOGIN_RICES_SECTION_NAME', 'Login Rices'),
-                preview: `${this.currentDir}/assets/login_rices.png`,
-                description: t('LOGIN_RICES_SECTION_DESC'),
-                badge: `${this.currentDir}/assets/dev.png`,
-                type: 'login-rices'
-            }
+        const isSupporterActive = this.controller?.supporterProvider?.isActive?.() === true;
+        const sections = [
+            this.createSectionDefinition(t, 'FIX_HYPRLAND_SECTION', 'Fix Hyprland', 'fix_hyperland.png', 'FIX_HYPRLAND_SECTION_DESC', 'fix-hyprland'),
+            this.createSectionDefinition(t, 'CONTEST_SECTION_NAME', 'Contest', 'kingsOfRices.png', 'CONTEST_SECTION_DESC', 'contest', true)
         ];
+        const aiSection = this.createSectionDefinition(
+            t,
+            'DEV_SECTION_NAME',
+            'Dev Tools',
+            'dynamic_ai.png',
+            'DEV_SECTION_DESC',
+            'dev',
+            !isSupporterActive
+        );
+        const tailSections = [
+            ['CLI_SECTION_NAME', 'CLI', 'cli.png', 'CLI_SECTION_DESC', 'cli'],
+            ['GRUB_SECTION_NAME', 'GRUB', 'grub.png', 'GRUB_SECTION_DESC', 'grub'],
+            ['REFIND_SECTION_NAME', 'rEFInd', 'refind.png', 'REFIND_SECTION_DESC', 'refind'],
+            ['LOGIN_RICES_SECTION_NAME', 'Login Rices', 'login_rices.png', 'LOGIN_RICES_SECTION_DESC', 'login-rices']
+        ].map(([nameKey, fallbackName, asset, descriptionKey, type]) =>
+            this.createSectionDefinition(t, nameKey, fallbackName, asset, descriptionKey, type, true)
+        );
+
+        return isSupporterActive
+            ? [sections[0], aiSection, sections[1], ...tailSections]
+            : [sections[0], sections[1], aiSection, ...tailSections];
     }
 
     createGridRow(items) {
@@ -121,9 +98,9 @@ export class MoreSectionsView {
     }
 
     populateSections() {
-        const t = (key, fb = null) => this.getTranslation(key, fb ?? key),
-            items = this.getSectionDefinitions(t).map(section => this.createSectionItem(section)),
-            rows = [];
+        const t = (key, fb = null) => this.getTranslation(key, fb ?? key);
+        const items = this.getSectionDefinitions(t).map(section => this.createSectionItem(section));
+        const rows = [];
         for (let i = 0; i < items.length; i += 2) {
             rows.push(this.createGridRow(items.slice(i, i + 2)));
         }
@@ -146,7 +123,7 @@ export class MoreSectionsView {
             container.get_style_context().add_class('hover');
             const win = container.get_window();
             win?.set_cursor(Gdk.Cursor.new_from_name(win.get_display(), 'pointer'));
-            this.soundService?.playButtonHoverSound?.()?.catch?.(() => {});
+            this.playHoverSound();
             return false;
         });
 
@@ -167,19 +144,7 @@ export class MoreSectionsView {
             margin_end: 4
         });
 
-        const icon = this.createSectionIcon(section);
-
-        const iconWidget = section.badge
-            ? (() => {
-                const badgeIcon = this.createBadgeIcon(section.badge);
-                const overlay = new Gtk.Overlay();
-                overlay.add(icon);
-                overlay.add_overlay(badgeIcon);
-                overlay.set_overlay_pass_through(badgeIcon, true);
-                return overlay;
-            })()
-            : icon;
-        box.pack_start(iconWidget, true, true, 0);
+        box.pack_start(this.createSectionIconWidget(section), true, true, 0);
 
         container.add(box);
 
@@ -204,6 +169,30 @@ export class MoreSectionsView {
         return image;
     }
 
+    createSectionDefinition(t, nameKey, fallbackName, asset, descriptionKey, type, withBadge = false) {
+        return {
+            name: t(nameKey, fallbackName),
+            preview: `${this.currentDir}/assets/${asset}`,
+            description: t(descriptionKey),
+            ...(withBadge ? {badge: `${this.currentDir}/assets/dev.png`} : {}),
+            type
+        };
+    }
+
+    createSectionIconWidget(section) {
+        const icon = this.createSectionIcon(section);
+        if (!section.badge) {
+            return icon;
+        }
+
+        const badgeIcon = this.createBadgeIcon(section.badge);
+        const overlay = new Gtk.Overlay();
+        overlay.add(icon);
+        overlay.add_overlay(badgeIcon);
+        overlay.set_overlay_pass_through(badgeIcon, true);
+        return overlay;
+    }
+
     createBadgeIcon(badgePath) {
         const badgeIcon = new Gtk.Image();
         badgeIcon.get_style_context().add_class('section-badge-3d');
@@ -215,6 +204,13 @@ export class MoreSectionsView {
         const badgePixbuf = Gio.File.new_for_path(badgePath).query_exists(null) && VIEW_UTILS?.makeRoundedPixbuf?.(badgePath, 48, 8);
         badgePixbuf ? badgeIcon.set_from_pixbuf(badgePixbuf) : badgeIcon.set_from_icon_name('emblem-new-symbolic', Gtk.IconSize.BUTTON);
         return badgeIcon;
+    }
+
+    playHoverSound() {
+        tryOrNullAsync(
+            'MoreSectionsView.playHoverSound',
+            () => this.soundService?.playButtonHoverSound?.()
+        );
     }
 
     handleSectionClick(section) {

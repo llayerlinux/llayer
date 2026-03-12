@@ -17,18 +17,32 @@ class ThemeSelectorControllerOpsI18n {
                 && typeof sourceContainer.get === 'function';
         return (hasContainer && sourceContainer.has('translator')
             ? sourceContainer.get('translator')
-            : null) ?? this.getGlobalTranslator();
+            : null) ?? this.getGlobalTranslator(sourceContainer);
     }
 
-    getGlobalTranslator() {
-        return (key, params = null) => {
-            const base = this.standardizeTranslationKey(key);
-            return applyParams(base, params ?? {});
-        };
+    getGlobalTranslator(container = null) {
+        const sourceContainer = container ?? this.container,
+            hasContainer = sourceContainer
+                && typeof sourceContainer.has === 'function'
+                && typeof sourceContainer.get === 'function',
+            translationService = hasContainer && sourceContainer.has('translationService')
+                ? sourceContainer.get('translationService')
+                : null,
+            translator = typeof translationService?.getTranslator === 'function'
+                ? translationService.getTranslator()
+                : null;
+        return typeof translator === 'function' ? translator : null;
     }
 
     translate(key, params = null) {
-        const raw = this.translator ? this.translator(key, params ?? undefined) : null;
+        const translator = typeof this.translator === 'function'
+            ? this.translator
+            : this.getTranslator();
+        typeof translator === 'function' && (this.translator = translator);
+
+        const raw = typeof translator === 'function'
+            ? translator(key, params ?? undefined)
+            : null;
         const base = this.standardizeTranslationKey(key);
         return typeof raw === 'string' ? raw : applyParams(base, params ?? {});
     }

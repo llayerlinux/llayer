@@ -8,7 +8,8 @@ const LAYOUT_MAP = {
     [ViewTabName.INSTALLED]: 'theme',
     [ViewTabName.NETWORK]: 'theme',
     [ViewTabName.MORE_SECTIONS]: 'special',
-    [ViewTabName.ABOUT]: 'special'
+    [ViewTabName.ABOUT]: 'special',
+    'ai-dynamic': 'settings',
 };
 
 export class TabManager {

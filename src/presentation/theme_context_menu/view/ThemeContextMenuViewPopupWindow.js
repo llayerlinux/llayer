@@ -17,20 +17,8 @@ class ThemeContextMenuViewPopupWindow {
 
         this.createPopupWindow();
         this.createContent();
-
-        this.popup.set_visible(true);
-        this.popup.show_all();
-        setupPointerCursors(this.popup);
-        this.positionMenu(triggerWidget, event);
-        this.popup.present();
-
-        const win = this.popup.get_window();
-        win?.show();
-        win?.raise();
-
-        this.popup.grab_focus();
-        this.isVisible = true;
-        this.isMenuOpened = true;
+        this.bindPopupToParent(triggerWidget);
+        this.showPopupWindow(triggerWidget, event);
     }
 
     hideMenu() {
@@ -54,32 +42,13 @@ class ThemeContextMenuViewPopupWindow {
         });
 
         this.popup.set_keep_above(true);
+        this.popup.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU);
         this.popup.set_name('theme-context-menu');
 
         const style = this.popup.get_style_context();
         style.add_class('theme-context-menu');
 
-        const currentDir = GLib.get_current_dir();
-        const cssPath = GLib.build_filenamev([currentDir, 'styles', 'style.css']);
-        const cssFile = Gio.File.new_for_path(cssPath);
-
-        cssFile.query_exists(null) && (() => {
-            const originalCssProvider = new Gtk.CssProvider();
-            originalCssProvider.load_from_path(cssPath);
-            this.popup.get_style_context().add_provider(
-                originalCssProvider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1
-            );
-        })();
-
-        const viewFromContainer = this.controller?.container?.get?.('themeSelectorView');
-        const cssProvider = viewFromContainer?.cssProvider;
-        cssProvider && (
-            this.popup.get_style_context().add_provider(
-                cssProvider,
-                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-            )
-        );
+        this.addPopupCssProviders();
 
         this.popup.connect('key-press-event', (widget, ev) => {
             const keyval = ev.get_keyval();
@@ -95,6 +64,85 @@ class ThemeContextMenuViewPopupWindow {
         this.popup.connect('hide', () => {
             this.isMenuOpened = false;
         });
+    }
+
+    getThemeSelectorView() {
+        return this.controller?.container?.get?.('themeSelectorView') || null;
+    }
+
+    getCurrentDir() {
+        return this.currentDir || this.controller?.container?.get?.('currentDir') || GLib.get_current_dir();
+    }
+
+    addPopupCssProviders() {
+        const cssPath = GLib.build_filenamev([this.getCurrentDir(), 'styles', 'style.css']);
+        const cssFile = Gio.File.new_for_path(cssPath);
+        if (cssFile.query_exists(null)) {
+            const originalCssProvider = new Gtk.CssProvider();
+            originalCssProvider.load_from_path(cssPath);
+            this.popup.get_style_context().add_provider(
+                originalCssProvider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+            );
+        }
+
+        const cssProvider = this.getThemeSelectorView()?.cssProvider;
+        if (!cssProvider) {
+            return;
+        }
+
+        this.popup.get_style_context().add_provider(
+            cssProvider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
+    }
+
+    resolveParentWindow() {
+        const themeSelectorView = this.getThemeSelectorView();
+        const candidates = [
+            themeSelectorView?.window,
+            this.controller?.container?.get?.('mainWindow') || null
+        ];
+
+        return candidates.find((candidate) => candidate instanceof Gtk.Window) || null;
+    }
+
+    bindPopupToParent(triggerWidget = null) {
+        const parentWindow = this.resolveParentWindow();
+        if (parentWindow) {
+            this.popup.set_transient_for(parentWindow);
+            this.popup.set_destroy_with_parent(true);
+        }
+
+        if (typeof this.popup.set_attached_to === 'function' && triggerWidget instanceof Gtk.Widget) {
+            this.popup.set_attached_to(triggerWidget);
+        }
+    }
+
+    queuePopupPosition(triggerWidget, event) {
+        GLib.idle_add(GLib.PRIORITY_HIGH_IDLE, () => {
+            this.popup && this.positionMenu(triggerWidget, event);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    showPopupWindow(triggerWidget, event) {
+        this.popup.set_visible(true);
+        this.popup.show_all();
+        setupPointerCursors(this.popup);
+        this.isWaylandMenuPlacement()
+            ? this.queuePopupPosition(triggerWidget, event)
+            : this.positionMenu(triggerWidget, event);
+
+        this.popup.present();
+
+        const win = this.popup.get_window();
+        win?.show();
+        win?.raise();
+
+        this.popup.grab_focus();
+        this.isVisible = true;
+        this.isMenuOpened = true;
     }
 
     createContent() {

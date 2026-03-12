@@ -4,24 +4,27 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=3.0';
 import Gdk from 'gi://Gdk?version=3.0';
 import { MODULES } from './AppModules.js';
+import { SupporterProvider } from './SupporterProvider.js';
+import { resolveProjectRootFromModule } from '../infrastructure/utils/ModulePathUtils.js';
+import { tryOrNull, tryRun } from '../infrastructure/utils/ErrorUtils.js';
 
-const CURRENT_DIR = GLib.get_current_dir();
+const CURRENT_DIR = resolveProjectRootFromModule(import.meta.url);
 
 function loadGlobalCSS() {
     const cssPath = GLib.build_filenamev([CURRENT_DIR, 'styles', 'style.css']);
-    return Gio.File.new_for_path(cssPath).query_exists(null)
-        ? (() => {
-            const cssProvider = new Gtk.CssProvider();
-            cssProvider.load_from_path(cssPath);
-            const screen = Gdk.Screen.get_default();
-            Gtk.StyleContext.add_provider_for_screen(
-                screen,
-                cssProvider,
-                Gtk.STYLE_PROVIDER_PRIORITY_USER
-            );
-            return true;
-        })()
-        : false;
+    if (!Gio.File.new_for_path(cssPath).query_exists(null)) {
+        return false;
+    }
+
+    const cssProvider = new Gtk.CssProvider();
+    cssProvider.load_from_path(cssPath);
+    const screen = Gdk.Screen.get_default();
+    Gtk.StyleContext.add_provider_for_screen(
+        screen,
+        cssProvider,
+        Gtk.STYLE_PROVIDER_PRIORITY_USER
+    );
+    return true;
 }
 
 class AppInitialization {
@@ -84,6 +87,9 @@ class AppInitialization {
     }
 
     async initializeServices() {
+        this.supporterProvider = new SupporterProvider();
+        this.container.value('supporterProvider', this.supporterProvider);
+
         const get = (name) => (this.container.has(name) ? this.container.get(name) : null);
         const currentDir = CURRENT_DIR;
 
@@ -97,10 +103,10 @@ class AppInitialization {
             'taskRunner': () => {
                 const securityManager = get('securityManager');
                 const taskRunner = new MODULES.TaskRunner();
-                securityManager && (
+                if (securityManager) {
                     taskRunner.checkCommandSafety = (command, args) =>
-                        securityManager.checkCommandSafety(command, args)
-                );
+                        securityManager.checkCommandSafety(command, args);
+                }
                 return taskRunner;
             },
             'commandExecutor': () => {
@@ -163,8 +169,12 @@ class AppInitialization {
                 const networkThemeService = get('networkThemeService');
                 const eventBus = get('eventBus');
 
-                networkThemeService && repository.setNetworkThemeService(networkThemeService);
-                eventBus && repository.setEventBus(eventBus);
+                if (networkThemeService) {
+                    repository.setNetworkThemeService(networkThemeService);
+                }
+                if (eventBus) {
+                    repository.setEventBus(eventBus);
+                }
 
                 return repository;
             },
@@ -172,6 +182,9 @@ class AppInitialization {
                 logger: this.logger,
                 themeRepository: get('themeRepository'),
                 settingsManager: this.settingsManager
+            }),
+            'hyprlandConfigGenerator': () => new MODULES.HyprlandConfigGenerator({
+                logger: this.logger
             }),
             'hotkeyService': () => new MODULES.HotkeyService({
                 logger: this.logger,
@@ -184,6 +197,7 @@ class AppInitialization {
                 hotkeyService: get('hotkeyService'),
                 themeRepository: get('themeRepository'),
                 settingsManager: this.settingsManager,
+                hyprlandConfigGenerator: get('hyprlandConfigGenerator'),
                 eventBus: this.eventBus,
                 logger: this.logger
             }),
@@ -284,6 +298,7 @@ class AppInitialization {
                     runEmbeddedFindAndBackupHyprland: runBackup,
                     updateBackupScript: updateScript,
                     restorePointService: restorePointService,
+                    hyprlandConfigGenerator: get('hyprlandConfigGenerator'),
                     logger: this.logger
                 });
             },
@@ -296,15 +311,17 @@ class AppInitialization {
 
         this.container.singleton('translationService', () => new MODULES.TranslationService({diContainer: this.container}));
 
-        this.container.singleton('translator', (container) => {
-            return container.get('translationService')?.getTranslator?.() || ((k) => k);
-        });
+        this.container.singleton('translator', (container) =>
+            container.get('translationService')?.getTranslator?.() || ((k) => k)
+        );
 
         this.container.value('PerformanceStatsReporter', MODULES.PerformanceStatsReporter);
 
         this.notifier = get('notifier');
 
-        this.eventBus && get('logger') && this.eventBus.setLogger?.(get('logger'));
+        if (this.eventBus && get('logger')) {
+            this.eventBus.setLogger?.(get('logger'));
+        }
 
         get('translationService')?.setDependencies?.(this.container, get('settingsService'));
         this.settingsManager?.setTranslationFunction?.(get('translator'));
@@ -378,6 +395,7 @@ class AppInitialization {
             ));
 
         get('hyprlandParameterService')?.initialize?.();
+        this.scheduleHyprlandConfigNormalization(get);
     }
 
     async initializeEventBus() {
@@ -385,6 +403,67 @@ class AppInitialization {
         this.container.value('eventBus', this.eventBus);
 
         this.eventBus.emit(Events.APP_STARTED, {timestamp: Date.now()});
+    }
+
+    scheduleHyprlandConfigNormalization(get) {
+        const generator = get('hyprlandConfigGenerator');
+        if (!generator?.generateThemeForCurrentVersion) {
+            return;
+        }
+
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this.normalizeInstalledHyprlandThemes(generator);
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    normalizeInstalledHyprlandThemes(generator) {
+        const themesDir = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'themes']);
+        if (!Gio.File.new_for_path(themesDir).query_exists(null)) {
+            return;
+        }
+
+        const enumerator = tryOrNull(
+            'AppInitialization.normalizeInstalledHyprlandThemes.enumerate',
+            () => Gio.File.new_for_path(themesDir).enumerate_children(
+                'standard::name,standard::type',
+                Gio.FileQueryInfoFlags.NONE,
+                null
+            )
+        );
+        if (!enumerator) {
+            this.logger?.warn?.('[AppInitialization] Failed to scan themes for normalization');
+            return;
+        }
+
+        let info;
+        while ((info = enumerator.next_file(null))) {
+            if (info.get_file_type() !== Gio.FileType.DIRECTORY) {
+                continue;
+            }
+
+            const themePath = GLib.build_filenamev([themesDir, info.get_name()]);
+            if (!this.themeHasHyprlandConfig(themePath)) {
+                continue;
+            }
+
+            const normalized = tryRun(
+                `AppInitialization.normalizeInstalledHyprlandThemes.${info.get_name()}`,
+                () => generator.generateThemeForCurrentVersion(themePath)
+            );
+            if (!normalized) {
+                this.logger?.warn?.(
+                    `[AppInitialization] Hyprland config normalization failed for ${themePath}`
+                );
+            }
+        }
+
+        enumerator.close?.(null);
+    }
+
+    themeHasHyprlandConfig(themePath) {
+        return Gio.File.new_for_path(`${themePath}/hyprland`).query_exists(null)
+            || Gio.File.new_for_path(`${themePath}/hyprland.conf`).query_exists(null);
     }
 }
 

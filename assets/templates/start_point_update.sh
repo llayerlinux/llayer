@@ -32,6 +32,18 @@ notifySafe() {
     echo "$title: $msg"
 }
 
+normalizeDefaultHyprlandTheme() {
+    local install_dir="$HOME/.config/lastlayer"
+    local generator="$install_dir/src/infrastructure/hyprland/cli/GenerateHyprlandConfig.js"
+    [ -d "$DEFAULT_THEME_DIR" ] || return 0
+    [ -f "$generator" ] || return 0
+    command -v gjs >/dev/null 2>&1 || return 0
+    (
+        cd "$install_dir" || exit 0
+        gjs -m "$generator" --theme-dir "$DEFAULT_THEME_DIR" >/dev/null 2>&1
+    ) || true
+}
+
 
 for dir in fish alacritty kitty waybar eww ags starship wlogout rofi dunst cava btop picom swaync wluma wofi default_wallpapers; do
   BACKUP_DIRS+=("$dir")
@@ -218,6 +230,8 @@ if [ "$theme_to_backup" = "default" ]; then
   rm -f "$TMP_HYPR_CONF" "$TMP_PER_RICE" "$TMP_OVERRIDES_JSON" "$TMP_PER_RICE_HOTKEYS" "$TMP_HOTKEY_OVERRIDES"
   rm -rf "$TMP_HYPR_DIR"
 fi
+
+normalizeDefaultHyprlandTheme
 
 
 ALL_BARS=(agsv1 eww waybar polybar yambar swaybar barberry)

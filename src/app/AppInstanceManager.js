@@ -3,8 +3,9 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import System from 'system';
 import { decodeBytes } from '../infrastructure/utils/Utils.js';
-import { tryOrDefault, tryOrFalse, tryOrNull, tryRun } from '../infrastructure/utils/ErrorUtils.js';
+import { tryOrDefault, tryOrFalse, tryOrNull, tryOrNullAsync, tryRun } from '../infrastructure/utils/ErrorUtils.js';
 import { TIMEOUTS } from '../infrastructure/constants/Timeouts.js';
+import { Events } from './eventBus.js';
 
 const LASTLAYER_PGREP_PATTERNS = [
     'pgrep -f "gjs.*src/app/main.js"',
@@ -125,8 +126,20 @@ class AppInstanceManager {
         return this.commandFilePath;
     }
 
+    getCommandQueueDir() {
+        return this.commandQueueDir
+            || GLib.build_filenamev([GLib.get_user_cache_dir(), 'lastlayer_popup_commands']);
+    }
+
+    ensureCommandQueueDir() {
+        tryRun('ensureCommandQueueDir', () => {
+            GLib.mkdir_with_parents(this.getCommandQueueDir(), parseInt('0755', 8));
+        });
+    }
+
     createLockFile() {
-        const lockFile = this.getLockFilePath(), pid = this.getCurrentPid();
+        const lockFile = this.getLockFilePath();
+        const pid = this.getCurrentPid();
         tryRun('createLockFile.mkdir', () =>
             ((d) => d.query_exists(null) || d.make_directory_with_parents(null))(
                 Gio.File.new_for_path(GLib.path_get_dirname(lockFile))));
@@ -144,8 +157,12 @@ class AppInstanceManager {
                 file.create(Gio.FileCreateFlags.NONE, null));
         });
 
-        return createResult?.ok || (createResult?.reason !== 'already-running'
-            && tryRun('createLockFile.fallback', () => GLib.file_set_contents(lockFile, `${pid}`)));
+        if (createResult?.ok) {
+            return true;
+        }
+
+        return createResult?.reason !== 'already-running'
+            && tryRun('createLockFile.fallback', () => GLib.file_set_contents(lockFile, `${pid}`));
     }
 
     removeLockFile() {
@@ -245,23 +262,263 @@ class AppInstanceManager {
     }
 
     showMainWindow() {
-        const showWindow = (win) => win && (win.show_all?.(), win.present?.(), true);
+        const showWindow = (win) => {
+            if (!win) {
+                return false;
+            }
 
-        showWindow(this.themeSelectorView?.window)
-            || (typeof this.themeSelectorView?.show === 'function' && (
-                this.themeSelectorView.show(),
-                showWindow(this.themeSelectorView?.window)
-            ))
-            || showWindow(this.container?.has?.('mainWindow') && this.container.get('mainWindow'));
+            win.show_all?.();
+            win.present?.();
+            return true;
+        };
+
+        if (showWindow(this.themeSelectorView?.window)) {
+            return;
+        }
+        if (typeof this.themeSelectorView?.show === 'function') {
+            this.themeSelectorView.show();
+            if (showWindow(this.themeSelectorView?.window)) {
+                return;
+            }
+        }
+
+        showWindow(this.container?.has?.('mainWindow') && this.container.get('mainWindow'));
+    }
+
+    getThemeSelectorController() {
+        return this.container?.has?.('themeSelectorController')
+            ? this.container.get('themeSelectorController')
+            : null;
+    }
+
+    syncLocalThemesSnapshot(controller, {switchLocal = false} = {}) {
+        const localThemes = controller?.themeRepository?.getLocalThemes?.() || null;
+        if (!Array.isArray(localThemes)) return null;
+
+        controller.store?.set?.('localThemes', localThemes);
+        controller.store?.update?.({totalLocalThemes: localThemes.length});
+        controller.store?.notifySubscribers?.('localThemes', localThemes, null);
+        switchLocal && controller.view?.updateThemesList?.(localThemes);
+        return localThemes;
+    }
+
+    selectLocalThemeByName(controller, themeName) {
+        if (!themeName) return;
+
+        controller?.store?.setCurrentTheme?.(themeName);
+        const currentList = controller?.store?.get?.('localThemes');
+        if (!Array.isArray(currentList)) return;
+
+        const match = currentList.find((theme) => theme?.name === themeName);
+        match && controller.store?.selectTheme?.(match);
+    }
+
+    extractCommandArgument(command) {
+        if (!command || typeof command !== 'string') return null;
+        const idx = command.indexOf(':');
+        if (idx < 0) return null;
+        const value = command.slice(idx + 1).trim();
+        return value || null;
+    }
+
+    parseCommand(command) {
+        if (!command || typeof command !== 'string') {
+            return {name: null, argument: null};
+        }
+
+        const separatorIndex = command.indexOf(':');
+        return {
+            name: separatorIndex < 0 ? command : command.slice(0, separatorIndex),
+            argument: separatorIndex < 0 ? null : this.extractCommandArgument(command)
+        };
+    }
+
+    refreshLocalThemes({showWindow = false, switchLocal = false, themeName = null} = {}) {
+        if (showWindow) {
+            this.showMainWindow();
+        }
+        const controller = this.getThemeSelectorController();
+        if (!controller) return;
+
+        if (switchLocal) {
+            controller.switchToTab?.('local');
+        }
+        controller.themeRepository?.clearCache?.();
+        this.syncLocalThemesSnapshot(controller, {switchLocal});
+
+        const loadPromise = controller.loadLocalThemes?.({force: true});
+        if (loadPromise) {
+            tryOrNullAsync('AppInstanceManager.refreshLocalThemes', () => loadPromise);
+        }
+
+        this.selectLocalThemeByName(controller, themeName);
+    }
+
+    showWindowWithLocalTab(themeName = null) {
+        this.refreshLocalThemes({showWindow: true, switchLocal: true, themeName});
+    }
+
+    refreshLocalThemesSilent(themeName = null) {
+        this.refreshLocalThemes({showWindow: false, switchLocal: false, themeName});
+    }
+
+    refreshCurrentTheme(themeName = null) {
+        if (!themeName) return;
+
+        const controller = this.getThemeSelectorController();
+        controller?.store?.setCurrentTheme?.(themeName);
+        controller?.view?.updateCurrentThemeStyles?.(themeName);
+    }
+
+    emitThemeUpdated(themeName = null) {
+        this.eventBus?.emit?.(Events.THEME_UPDATED, {
+            theme: themeName ? {name: themeName} : null
+        });
+    }
+
+    handleToggleCommand(lastToggleTimeRef) {
+        if (!this.isWindowReady) return false;
+
+        const now = Date.now();
+        if (now - lastToggleTimeRef.value < TIMEOUTS.TOGGLE_COOLDOWN_MS) {
+            return false;
+        }
+
+        lastToggleTimeRef.value = now;
+        this.toggleMainWindow();
+        return true;
+    }
+
+    handleShowCommand() {
+        if (!this.isWindowReady) return false;
+        this.showMainWindow();
+        return true;
+    }
+
+    handleShowLocalCommand(themeName = null) {
+        if (!this.isWindowReady) return false;
+        this.showWindowWithLocalTab(themeName);
+        return true;
+    }
+
+    handleRefreshLocalThemesCommand(themeName = null) {
+        if (!this.isWindowReady) return false;
+        this.refreshLocalThemesSilent(themeName);
+        return true;
+    }
+
+    handleRefreshCurrentThemeCommand(themeName = null) {
+        if (!this.isWindowReady) return false;
+        this.refreshCurrentTheme(themeName);
+        return true;
+    }
+
+    handleThemeUpdatedCommand(themeName = null) {
+        if (!this.isWindowReady) return false;
+        this.emitThemeUpdated(themeName);
+        this.refreshLocalThemesSilent(themeName);
+        return true;
+    }
+
+    emitCommandPayload(eventName, payloadText) {
+        const payload = payloadText
+            ? tryOrNull('AppInstanceManager.emitCommandPayload.parse', () => JSON.parse(payloadText))
+            : null;
+        this.eventBus?.emit?.(eventName, payload);
+        return true;
+    }
+
+    handleCommand(command, lastToggleTimeRef) {
+        if (!command) return true;
+
+        const parsedCommand = this.parseCommand(command);
+        switch (parsedCommand.name) {
+        case 'toggle':
+            return command === 'toggle' ? this.handleToggleCommand(lastToggleTimeRef) : true;
+        case 'show':
+            return command === 'show' ? this.handleShowCommand() : true;
+        case 'show_local':
+            return this.handleShowLocalCommand(parsedCommand.argument);
+        case 'refresh_local_silent':
+            return this.handleRefreshLocalThemesCommand(parsedCommand.argument);
+        case 'refresh_theme':
+            return this.handleRefreshCurrentThemeCommand(parsedCommand.argument);
+        case 'theme_updated':
+            return this.handleThemeUpdatedCommand(parsedCommand.argument);
+        case 'wm_conversion_start':
+            return command.startsWith('wm_conversion_start:')
+                ? this.emitCommandPayload(Events.WM_CONVERSION_START, parsedCommand.argument)
+                : true;
+        case 'wm_conversion_complete':
+            return command.startsWith('wm_conversion_complete:')
+                ? this.emitCommandPayload(Events.WM_CONVERSION_COMPLETE, parsedCommand.argument)
+                : true;
+        default:
+            return true;
+        }
+    }
+
+    drainCommandFile(commandFile, lastToggleTimeRef) {
+        const file = Gio.File.new_for_path(commandFile);
+        if (!file.query_exists(null)) return;
+
+        const [ok, content] = tryOrNull('commandListener.read', () => GLib.file_get_contents(commandFile)) || [];
+        if (!ok) return;
+
+        const command = decodeBytes(content).trim();
+        if (!command) {
+            tryRun('commandListener.deleteEmptyFile', () => file.delete(null));
+            return;
+        }
+
+        const handled = this.handleCommand(command, lastToggleTimeRef);
+        handled && tryRun('commandListener.deleteFile', () => file.delete(null));
+    }
+
+    drainCommandQueue(commandQueueDir, lastToggleTimeRef) {
+        const dir = Gio.File.new_for_path(commandQueueDir);
+        if (!dir.query_exists(null)) return;
+
+        const names = [];
+        const enumerator = tryOrNull(
+            'commandListener.queue.enumerate',
+            () => dir.enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null)
+        );
+        if (!enumerator) return;
+
+        let info = null;
+        while ((info = tryOrNull('commandListener.queue.next', () => enumerator.next_file(null))) !== null) {
+            if (info.get_file_type() !== Gio.FileType.REGULAR) continue;
+            names.push(info.get_name());
+        }
+        tryRun('commandListener.queue.close', () => enumerator.close(null));
+        names.sort();
+
+        names.forEach((name) => {
+            const path = GLib.build_filenamev([commandQueueDir, name]);
+            const file = Gio.File.new_for_path(path);
+            const [ok, content] = tryOrNull('commandListener.queue.read', () => GLib.file_get_contents(path)) || [];
+            if (!ok) {
+                tryRun('commandListener.queue.deleteUnreadable', () => file.delete(null));
+                return;
+            }
+
+            const command = decodeBytes(content).trim();
+            if (!command) {
+                tryRun('commandListener.queue.deleteEmpty', () => file.delete(null));
+                return;
+            }
+
+            const handled = this.handleCommand(command, lastToggleTimeRef);
+            handled && tryRun('commandListener.queue.delete', () => file.delete(null));
+        });
     }
 
     startCommandListener() {
-        let commandFile = this.getCommandFilePath();
-        let lastToggleTime = 0;
-        let commandHandlers = {
-            toggle: () => this.toggleMainWindow(),
-            show: () => this.showMainWindow()
-        };
+        const commandFile = this.getCommandFilePath();
+        const commandQueueDir = this.getCommandQueueDir();
+        const lastToggleTimeRef = {value: 0};
+        this.ensureCommandQueueDir();
 
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, TIMEOUTS.INITIALIZATION_DELAY_MS, () => {
             this.isWindowReady = true;
@@ -269,24 +526,22 @@ class AppInstanceManager {
         });
 
         this.commandListenerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, TIMEOUTS.COMMAND_POLL_INTERVAL_MS, () => {
-            tryRun('commandListener', () => {
-                let file = Gio.File.new_for_path(commandFile);
-                if (!file.query_exists(null)) return;
-
-                let [ok, content] = tryOrNull('commandListener.read', () => GLib.file_get_contents(commandFile)) || [];
-                if (!ok) return;
-
-                let command = decodeBytes(content).trim();
-                let handler = commandHandlers[command];
-                if (!handler) { file.delete(null); return; }
-                if (!this.isWindowReady) return;
-
-                file.delete(null);
-                if (command === 'toggle' && Date.now() - lastToggleTime < TIMEOUTS.TOGGLE_COOLDOWN_MS) return;
-                lastToggleTime = Date.now();
-                handler();
-            });
+            tryRun('commandListener.file', () => this.drainCommandFile(commandFile, lastToggleTimeRef));
+            tryRun('commandListener.queue', () => this.drainCommandQueue(commandQueueDir, lastToggleTimeRef));
             return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    enqueueCommand(command) {
+        if (!command) return;
+        tryRun('enqueueCommand', () => {
+            this.ensureCommandQueueDir();
+            const queueDir = this.getCommandQueueDir();
+            const id = typeof GLib.uuid_string_random === 'function'
+                ? GLib.uuid_string_random()
+                : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            const path = GLib.build_filenamev([queueDir, `${Date.now()}-${id}.cmd`]);
+            GLib.file_set_contents(path, command);
         });
     }
 

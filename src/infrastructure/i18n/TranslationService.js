@@ -2,8 +2,9 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import { tryOrNull } from '../utils/ErrorUtils.js';
 import { decodeBytes, applyParams } from '../utils/Utils.js';
+import { resolveProjectRootFromModule } from '../utils/ModulePathUtils.js';
 
-const currentDir = GLib.get_current_dir();
+const currentDir = resolveProjectRootFromModule(import.meta.url);
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
 const isNonEmptyObject = (value) => value && typeof value === 'object' && Object.keys(value).length > 0;

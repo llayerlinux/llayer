@@ -65,6 +65,25 @@ export class SettingsManagerClass {
             auto_close_install_terminal: false,
             auto_close_after_install_terminal: false,
             force_hide_script_terminals: false,
+            executeImageInstructions: true,
+            autoGenerateTagsOnImport: false,
+            autoGenerateTagsProviderId: null,
+            lastAddLocalThemeDir: '~/.config',
+            xterm_dock_to_window: true,
+            xterm_width: 80,
+            xterm_height: 24,
+            xterm_pixel_width: 650,
+            xterm_pixel_height: 450,
+            xterm_bg: '#2e3440',
+            xterm_fg: '#d8dee9',
+            xterm_font: 'Monospace',
+            xterm_font_size: 11,
+            xterm_color_preset: null,
+            xterm_from_rice: false,
+            hyprpanel_adaptive_isolation: false,
+            hyprpanel_adaptive_scale_enabled: false,
+            hyprpanel_adaptive_scale_value: 68,
+            quickshell_adaptive_isolation: true,
 
             alt_bar: 'none',
             alt_timeout: 2.0,
@@ -98,8 +117,50 @@ export class SettingsManagerClass {
 
             hyprlandOverrides: {},
             hotkeyOverrides: {},
+            globalRecommendationsState: {},
+            hyprlandExtraLines: [],
             autoDetectSystemParams: true,
-            applyHyprlandOverridesRealtime: false
+            applyHyprlandOverridesRealtime: false,
+            autoConvertLegacyParams: true,
+            legacySettings: {
+                autoMigrate: true,
+                globalEnabledLegacy: [],
+                globalRevertedConversions: [],
+                globalEnabledFuture: [],
+                globalRevertedFutureConversions: []
+            },
+            previewSource: 'auto',
+            importLogDisabled: false,
+            importLogAutoHide: true,
+            autoApplyAfterImport: false,
+            swayToHyprlandConvert: true,
+            swayConvertFixFonts: true,
+            swayConvertFixActive: true,
+            hideWifiNameOnImport: false,
+            flyParallelApply: true,
+            flySkipHeavyPhases: false,
+            flyPreloadWallpaper: true,
+            flyWarmBarProcess: false,
+            flyPregenScript: false,
+            flySkipInstallScript: false,
+            flyEarlyOverrides: true,
+            flySeamlessMode: false,
+            flyDisableExternalNotifications: false,
+            gitUrlMode: 'https',
+            timeouts: {
+                flyDebounceDelay: 150,
+                regularDebounceDelay: 500,
+                stabilityCheckInterval: 150,
+                stabilityMaxWait: 30000,
+                retryDelayBase: 2000,
+                flyApplyDelay: 500,
+                regularApplyDelay: 1500,
+                flyRetryDelay: 300,
+                regularRetryDelay: 1000,
+                commandListenerInterval: 100,
+                rescanAfterImportDelay: 1000,
+                startupScanDelay: 200
+            }
         };
     }
 
@@ -113,9 +174,16 @@ export class SettingsManagerClass {
     }
 
     standardizeSettings() {
-        this.settings?.closePopupAfterApply === true
-            && this.settings.sendPerformanceStats === true
-            && (this.settings.closePopupAfterApply = false);
+        if (this.settings?.closePopupAfterApply === true && this.settings.sendPerformanceStats === true) {
+            this.settings.closePopupAfterApply = false;
+        }
+
+        this.settings.legacySettings = this.mergeObjectSetting('legacySettings', this.defaults.legacySettings);
+        this.settings.timeouts = this.mergeObjectSetting('timeouts', this.defaults.timeouts);
+        this.settings.globalRecommendationsState = this.mergeObjectSetting('globalRecommendationsState', {});
+        this.settings.hyprlandExtraLines = Array.isArray(this.settings?.hyprlandExtraLines)
+            ? this.settings.hyprlandExtraLines
+            : [];
     }
 
     setTranslationFunction(translator) {
@@ -131,28 +199,34 @@ export class SettingsManagerClass {
     }
 
     tryRestoreFromPersistent() {
-        const persistentFile = Gio.File.new_for_path(this.persistentSettingsPath),
-            exists = persistentFile.query_exists(null);
-        exists && (() => {
-            this.ensureSettingsDir();
-            const targetFile = Gio.File.new_for_path(this.settingsPath);
-            persistentFile.copy(targetFile, Gio.FileCopyFlags.OVERWRITE, null, null);
-        })();
-        return exists;
+        const persistentFile = Gio.File.new_for_path(this.persistentSettingsPath);
+        if (!persistentFile.query_exists(null)) {
+            return false;
+        }
+
+        this.ensureSettingsDir();
+        const targetFile = Gio.File.new_for_path(this.settingsPath);
+        persistentFile.copy(targetFile, Gio.FileCopyFlags.OVERWRITE, null, null);
+        return true;
     }
 
     writeDefaultsIfMissing() {
         const file = Gio.File.new_for_path(this.settingsPath);
-        !file.query_exists(null) && (() => {
-            this.ensureSettingsDir();
-            const json = JSON.stringify(this.defaults, null, 2);
-            GLib.file_set_contents(this.settingsPath, json);
-        })();
+        if (file.query_exists(null)) {
+            return;
+        }
+
+        this.ensureSettingsDir();
+        const json = JSON.stringify(this.defaults, null, 2);
+        GLib.file_set_contents(this.settingsPath, json);
     }
 
     load() {
         const settingsFile = Gio.File.new_for_path(this.settingsPath);
-        settingsFile.query_exists(null) || (this.tryRestoreFromPersistent(), this.writeDefaultsIfMissing());
+        if (!settingsFile.query_exists(null)) {
+            this.tryRestoreFromPersistent();
+            this.writeDefaultsIfMissing();
+        }
 
         const data = this.readJsonFile(this.settingsPath);
         this.settings = (data && typeof data === 'object')
@@ -170,7 +244,9 @@ export class SettingsManagerClass {
     applyUpdates(updates) {
         const entries = (updates && typeof updates === 'object') ? Object.entries(updates) : [];
         entries.forEach(([key, value]) => {
-            value !== undefined && (this.settings[key] = value);
+            if (value !== undefined) {
+                this.settings[key] = value;
+            }
         });
         this.standardizeSettings();
     }
@@ -274,6 +350,17 @@ export class SettingsManagerClass {
             'SettingsManager.readGlobalHyprlandState',
             { withMeta: true }
         );
+    }
+
+    isPlainObject(value) {
+        return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+    }
+
+    mergeObjectSetting(key, defaults = {}) {
+        const currentValue = this.settings?.[key];
+        return this.isPlainObject(currentValue)
+            ? {...defaults, ...currentValue}
+            : {...defaults};
     }
 
     buildNextInitiators(previousState, nextParams, nextInitiators) {

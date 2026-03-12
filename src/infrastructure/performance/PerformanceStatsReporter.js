@@ -52,9 +52,14 @@ export class PerformanceStatsReporter {
         const bodyString = JSON.stringify(payload);
         const hasModernAPI = typeof message.set_request_body_from_bytes === 'function';
 
-        hasModernAPI
-            ? message.set_request_body_from_bytes('application/json', GLib.Bytes.new(new TextEncoder().encode(bodyString)))
-            : message.set_request('application/json', Soup.MemoryUse.COPY, bodyString);
+        if (hasModernAPI) {
+            message.set_request_body_from_bytes(
+                'application/json',
+                GLib.Bytes.new(new TextEncoder().encode(bodyString))
+            );
+        } else {
+            message.set_request('application/json', Soup.MemoryUse.COPY, bodyString);
+        }
 
         session.queue_message(message, (_sess, msg) => {
             const isSuccess = msg.status_code >= 200 && msg.status_code < 300;
@@ -99,12 +104,10 @@ export class PerformanceStatsReporter {
     }
 
     extractThemeIdentifier(theme, explicitId = null) {
+        const derivedId = this.extractThemeId(theme);
         const candidates = [
             explicitId != null ? String(explicitId) : null,
-            (() => {
-                const id = this.extractThemeId(theme);
-                return id != null ? String(id) : null;
-            })(),
+            derivedId != null ? String(derivedId) : null,
             (theme?.name || theme?.title || '').trim() || null,
             theme?.metadata?.originalTheme?.name?.trim() || null
         ];
@@ -112,8 +115,12 @@ export class PerformanceStatsReporter {
         return candidates.find(v => v) ?? null;
     }
 
+    getThemeRepository() {
+        return this.themeRepository || null;
+    }
+
     async getThemeIdFromServer(theme, serverBase) {
-        let repository = this.themeRepository;
+        let repository = this.getThemeRepository();
         if (!repository || typeof repository.getNetworkThemeByName !== 'function') {
             return false;
         }

@@ -3,8 +3,10 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import {Commands} from '../../../infrastructure/constants/Commands.js';
 import {ARCHIVE_EXT_REGEX, EXTRACT_DIR_SUFFIX, PREVIEW_CURL_ARGS} from './DownloadRiceUseCaseConstants.js';
+import {HyprlandConfigGenerator} from '../../../infrastructure/hyprland/HyprlandConfigGenerator.js';
 import {findExistingNamedDir, findSubdirWithHyprland, getSubdirs} from '../../../infrastructure/utils/FileExecUtils.js';
 import {parseLink} from '../../../infrastructure/utils/Utils.js';
+import {tryRun} from '../../../infrastructure/utils/ErrorUtils.js';
 
 class DownloadRiceUseCaseInstall {
     sanitizeThemeName(value) {
@@ -36,18 +38,49 @@ class DownloadRiceUseCaseInstall {
         if (extractResult?.success === false) return {path: null, name: null, error: extractResult.error};
 
         this.moveFilesSync(extractDir, targetThemePath);
+        this.generateInstalledThemeHyprlandConfig(targetThemePath);
         this.cleanupSync(archivePath, extractDir);
 
         return {path: targetThemePath, name: finalName};
     }
 
-    async findThemeSourceDirectory(zipPath, extractDir, baseName, theme, execAsync) {
-        let possibleNames = [baseName, theme.title, theme.name].filter(Boolean),
-            earlyMatch = zipPath.toLowerCase().endsWith('.tar.xz') && (
-                findExistingNamedDir(extractDir, possibleNames)
-                || (await getSubdirs(extractDir, execAsync, 1))[0]
+    getHyprlandConfigGenerator() {
+        if (!this.hyprlandConfigGenerator) {
+            this.hyprlandConfigGenerator = new HyprlandConfigGenerator({logger: this.logger});
+        }
+        return this.hyprlandConfigGenerator;
+    }
+
+    generateInstalledThemeHyprlandConfig(themePath) {
+        if (!themePath || !Gio.File.new_for_path(`${themePath}/hyprland`).query_exists(null)) {
+            return;
+        }
+
+        const generated = tryRun(
+            'DownloadRiceUseCaseInstall.generateInstalledThemeHyprlandConfig',
+            () => this.getHyprlandConfigGenerator().generateThemeForCurrentVersion(themePath)
+        );
+        if (!generated) {
+            this.logger?.warn?.(
+                'DownloadRiceUseCaseInstall',
+                `Failed to generate version-aware Hyprland config for ${themePath}`
             );
-        if (earlyMatch) return earlyMatch;
+        }
+    }
+
+    async findThemeSourceDirectory(zipPath, extractDir, baseName, theme, execAsync) {
+        const possibleNames = [baseName, theme.title, theme.name].filter(Boolean);
+        if (zipPath.toLowerCase().endsWith('.tar.xz')) {
+            const existingDir = findExistingNamedDir(extractDir, possibleNames);
+            if (existingDir) {
+                return existingDir;
+            }
+
+            const firstSubdir = (await getSubdirs(extractDir, execAsync, 1))[0];
+            if (firstSubdir) {
+                return firstSubdir;
+            }
+        }
 
         let allSubdirs = await getSubdirs(extractDir, execAsync);
         return findSubdirWithHyprland(allSubdirs)

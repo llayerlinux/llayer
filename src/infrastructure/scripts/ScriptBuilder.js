@@ -1,5 +1,7 @@
 import GLib from 'gi://GLib';
 import { BarRegistry } from '../bars/BarRegistry.js';
+import { HyprlandConfigGenerator } from '../hyprland/HyprlandConfigGenerator.js';
+import { buildLastLayerConfForVersion } from '../hyprland/HyprlandRuleSyntaxTransformer.js';
 import {
     applyTemplate,
     createTemplatePath,
@@ -19,11 +21,18 @@ const TEMPLATE_PATHS = {
     startPointUpdate: createTemplatePath('start_point_update.sh')
 };
 const TEMPLATE_CACHE = new Map();
+let hyprlandConfigGeneratorInstance = null;
 
 export class ScriptBuilder {
-
     static clearTemplateCache() {
         TEMPLATE_CACHE.clear();
+    }
+
+    static getHyprlandConfigGenerator() {
+        if (!hyprlandConfigGeneratorInstance) {
+            hyprlandConfigGeneratorInstance = new HyprlandConfigGenerator();
+        }
+        return hyprlandConfigGeneratorInstance;
     }
 
     static buildThemeDownloadScript({zipPath, url, cacheDir, themeName}) {
@@ -132,5 +141,11 @@ fi
 
     static buildStartPointUpdateScript() {
         return getCachedTemplate(TEMPLATE_PATHS.startPointUpdate, TEMPLATE_CACHE) || '';
+    }
+
+    static buildLastLayerConfTemplate(targetVersion = null) {
+        const generator = this.getHyprlandConfigGenerator();
+        const resolvedVersion = targetVersion || generator.detectHyprlandVersion();
+        return buildLastLayerConfForVersion(resolvedVersion);
     }
 }
