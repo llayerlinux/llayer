@@ -20,6 +20,7 @@ export class MoreSectionsController {
 
         this.isFixingHyprland = false;
         this.translator = container?.has?.('translator') ? container.get('translator') : null;
+        this.supporterProvider = container?.get?.('supporterProvider') || null;
     }
 
     setView(view) {
@@ -45,6 +46,9 @@ export class MoreSectionsController {
             case 'fix-hyprland':
                 return this.handleFixHyprlandSection();
             case 'dev':
+                return this.supporterProvider?.isActive?.()
+                    ? this.handleAIDynamicSection()
+                    : this.handleDevSection(section);
             case 'cli':
             case 'grub':
             case 'refind':
@@ -60,46 +64,49 @@ export class MoreSectionsController {
     }
 
     handleFixHyprlandSection() {
-        return this.isFixingHyprland
-            ? undefined
-            : (() => {
-                this.isFixingHyprland = true;
+        if (this.isFixingHyprland || !this.fixHyprlandUseCase?.execute) {
+            return;
+        }
 
-                const settings = this.getSettings() ?? {};
-                const result = this.fixHyprlandUseCase.execute({
-                    playSound: true,
-                    settingsThemeHint: settings.theme
-                });
+        this.isFixingHyprland = true;
 
-                result.success
-                    ? (() => {
-                        const message = result.themeReapplied
-                            ? this.translate('FIX_HYPRLAND_SUCCESS')
-                            : this.getBaseSuccessMessage();
-                        this.showFixHyprlandResultDialog(message, true);
-                    })()
-                    : this.showFixHyprlandResultDialog(
-                        result.error || this.translate('FIX_HYPRLAND_ERROR'),
-                        false
-                    );
+        const settings = this.getSettings() ?? {};
+        const result = this.fixHyprlandUseCase.execute({
+            playSound: true,
+            settingsThemeHint: settings.theme
+        });
 
-                this.isFixingHyprland = false;
-            })();
+        if (result.success) {
+            this.showFixHyprlandResultDialog(this.resolveFixHyprlandSuccessMessage(result), true);
+        } else {
+            this.showFixHyprlandResultDialog(
+                result.error || this.translate('FIX_HYPRLAND_ERROR'),
+                false
+            );
+        }
+
+        this.isFixingHyprland = false;
     }
 
     getBaseSuccessMessage() {
         return this.translate('FIX_HYPRLAND_BASE_SUCCESS');
     }
 
+    resolveFixHyprlandSuccessMessage(result) {
+        return result?.themeReapplied
+            ? this.translate('FIX_HYPRLAND_SUCCESS')
+            : this.getBaseSuccessMessage();
+    }
+
     getParentWindow() {
-        return (this.view?.window instanceof Gtk.Window)
-            ? this.view.window
-            : (() => {
-                const themeSelectorView = this.container?.has?.('themeSelectorView')
-                    ? this.container.get('themeSelectorView')
-                    : null;
-                return themeSelectorView?.window instanceof Gtk.Window ? themeSelectorView.window : null;
-            })();
+        if (this.view?.window instanceof Gtk.Window) {
+            return this.view.window;
+        }
+
+        const themeSelectorView = this.container?.has?.('themeSelectorView')
+            ? this.container.get('themeSelectorView')
+            : null;
+        return themeSelectorView?.window instanceof Gtk.Window ? themeSelectorView.window : null;
     }
 
     showFixHyprlandResultDialog(message, isSuccess = true) {
@@ -128,6 +135,10 @@ export class MoreSectionsController {
             title: sectionName,
             secondaryText: this.translate('MORE_SECTIONS_DEV_IN_PROGRESS')
         });
+    }
+
+    handleAIDynamicSection() {
+        this.mainController?.view?.handleTabSwitch?.('ai-dynamic');
     }
 
     handleDevSection(section) {
@@ -165,6 +176,7 @@ export class MoreSectionsController {
 
     destroy() {
         this.container = this.store = this.view = this.translations = this.mainController =
-            this.logger = this.soundService = this.notifier = this.fixHyprlandUseCase = null;
+            this.logger = this.soundService = this.notifier = this.fixHyprlandUseCase =
+            this.supporterProvider = null;
     }
 }

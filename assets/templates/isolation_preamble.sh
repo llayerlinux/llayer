@@ -7,6 +7,10 @@ __LL_PROGRAMS_BASE="{{BASE_PROGRAMS_PATH}}"
 
 mkdir -p "$__LL_ISOLATION_PREFIX/bin" "$__LL_ISOLATION_PREFIX/lib" "$__LL_ISOLATION_PREFIX/share" 2>/dev/null || true
 
+: "${TMPDIR:=$HOME/.cache/lastlayer-tmp}"
+mkdir -p "$TMPDIR" 2>/dev/null || true
+export TMPDIR
+
 llGetProgramPrefix() {
     local pkg="$1"
     if [ "$__LL_ISOLATION_MODE" = "per-program" ]; then
@@ -272,8 +276,9 @@ __ll_orig_yay="$(command -v yay 2>/dev/null || echo yay)"
 llExtractPkg() {
     local pkg_file="$1"
     local dest="$2"
-    local extract_dir="/tmp/ll_extract_$$"
-    mkdir -p "$dest/bin" "$dest/lib" "$dest/share" "$extract_dir"
+    local extract_dir=""
+    mkdir -p "$dest/bin" "$dest/lib" "$dest/share" "$TMPDIR"
+    extract_dir="$(mktemp -d "$TMPDIR/ll_extract_XXXXXX")" || return 1
 
     if tar -xf "$pkg_file" -C "$extract_dir" 2>/dev/null; then
         [ -d "$extract_dir/usr/lib" ] && cp -a "$extract_dir/usr/lib"/* "$dest/lib/" 2>/dev/null
@@ -316,8 +321,9 @@ llAurInstall() {
     echo "[LASTLAYER] Intercepting AUR install: ${packages[*]}"
 
     for pkg in "${packages[@]}"; do
-        local build_dir="/tmp/ll_aur_build_$$_$pkg"
+        local build_dir="$TMPDIR/ll_aur_build_$$_$pkg"
         local installed=0
+        mkdir -p "$TMPDIR" 2>/dev/null || true
 
         local effective_prefix
         if [ "$__LL_ISOLATION_MODE" = "per-program" ]; then

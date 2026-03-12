@@ -4,8 +4,15 @@ function isWorkspaceRuleRecommendation(rec) {
     return rec?.type === 'workspaceRule' && rec?.ruleTemplate && rec?.workspaces;
 }
 
-function pushRuleIfMissing(rules, line) {
-    !rules.some((existing) => standardizeRuleLine(existing) === standardizeRuleLine(line)) && rules.push(line);
+function canonicalizeRule(context, line) {
+    return context.canonicalizeRecommendationRuleLine?.(line) || standardizeRuleLine(line);
+}
+
+function pushRuleIfMissing(context, rules, line) {
+    const canonicalRule = canonicalizeRule(context, line);
+    canonicalRule
+        && !rules.some((existing) => canonicalizeRule(context, existing) === canonicalRule)
+        && rules.push(canonicalRule);
 }
 
 function splitRuleLines(ruleLine = '') {
@@ -31,64 +38,77 @@ function getWorkspaceRules(rec) {
 
 export function applyHyprlandRecommendationsRuleOps(prototype) {
     prototype.applyRuleRecommendation = function(rec) {
-        const ruleLine = rec?.ruleLine || '',
-            checkRule = rec?.primaryRule || splitRuleLines(ruleLine)[0];
-        (ruleLine && !this.checkRuleExists?.(checkRule)) && (() => {
-            const rules = readRules(this);
-            for (const line of splitRuleLines(ruleLine)) {
-                pushRuleIfMissing(rules, line);
-            }
-            writeRules(this, rules);
-        })();
+        const ruleLine = rec?.ruleLine || '';
+        const checkRule = rec?.primaryRule || splitRuleLines(ruleLine)[0];
+        if (!ruleLine || this.checkRuleExists?.(checkRule)) {
+            return;
+        }
+
+        const rules = readRules(this);
+        for (const line of splitRuleLines(ruleLine)) {
+            pushRuleIfMissing(this, rules, line);
+        }
+        writeRules(this, rules);
     };
 
     prototype.revertRuleRecommendation = function(rec, previousValue) {
-        const ruleLine = rec?.ruleLine || '',
-            checkRule = rec?.primaryRule || splitRuleLines(ruleLine)[0];
-        (ruleLine && standardizeRuleLine(previousValue) !== standardizeRuleLine(checkRule)) && (() => {
-            const linesToRemove = splitRuleLines(ruleLine).map((line) => standardizeRuleLine(line));
-            writeRules(this, readRules(this).filter(line =>
-                !linesToRemove.includes(standardizeRuleLine(line))
-            ));
-        })();
+        const ruleLine = rec?.ruleLine || '';
+        const checkRule = rec?.primaryRule || splitRuleLines(ruleLine)[0];
+        if (!ruleLine || canonicalizeRule(this, previousValue) === canonicalizeRule(this, checkRule)) {
+            return;
+        }
+
+        const linesToRemove = splitRuleLines(ruleLine).map((line) => canonicalizeRule(this, line));
+        writeRules(this, readRules(this).filter(line =>
+            !linesToRemove.includes(canonicalizeRule(this, line))
+        ));
     };
 
     prototype.applyWorkspaceRuleRecommendation = function(rec) {
         const workspaceRules = getWorkspaceRules(rec);
-        workspaceRules.length > 0 && (() => {
-            const rules = readRules(this);
-            for (const rule of workspaceRules) {
-                pushRuleIfMissing(rules, rule);
-            }
-            writeRules(this, rules);
-        })();
+        if (workspaceRules.length === 0) {
+            return;
+        }
+
+        const rules = readRules(this);
+        for (const rule of workspaceRules) {
+            pushRuleIfMissing(this, rules, rule);
+        }
+        writeRules(this, rules);
     };
 
     prototype.revertWorkspaceRuleRecommendation = function(rec) {
         const workspaceRules = getWorkspaceRules(rec);
-        workspaceRules.length > 0 && (() => {
-            const rulesToRemove = workspaceRules.map((line) => standardizeRuleLine(line));
-            writeRules(this, readRules(this).filter(line =>
-                !rulesToRemove.includes(standardizeRuleLine(line))
-            ));
-        })();
+        if (workspaceRules.length === 0) {
+            return;
+        }
+
+        const rulesToRemove = workspaceRules.map((line) => canonicalizeRule(this, line));
+        writeRules(this, readRules(this).filter(line =>
+            !rulesToRemove.includes(canonicalizeRule(this, line))
+        ));
     };
 
     prototype.toggleWorkspaceRule = function(rec, ws, enable) {
-        (rec?.type === 'workspaceRule' && rec?.ruleTemplate) && (() => {
-            const rule = rec.ruleTemplate.replace('{ws}', ws),
-                rules = readRules(this),
-                hasRule = rules.some(r => standardizeRuleLine(r) === standardizeRuleLine(rule));
+        if (rec?.type !== 'workspaceRule' || !rec?.ruleTemplate) {
+            return;
+        }
 
-            (enable && !hasRule)
-                ? rules.push(rule)
-                : (() => {
-                    const normalized = standardizeRuleLine(rule),
-                        idx = rules.findIndex(r => standardizeRuleLine(r) === normalized);
-                    idx >= 0 && rules.splice(idx, 1);
-                })();
+        const rule = rec.ruleTemplate.replace('{ws}', ws);
+        const rules = readRules(this);
+        const canonicalRule = canonicalizeRule(this, rule);
+        const existingIndex = rules.findIndex((currentRule) =>
+            canonicalizeRule(this, currentRule) === canonicalRule
+        );
 
-            writeRules(this, rules);
-        })();
+        if (enable) {
+            existingIndex === -1 && rules.push(canonicalRule);
+        }
+
+        if (!enable && existingIndex >= 0) {
+            rules.splice(existingIndex, 1);
+        }
+
+        writeRules(this, rules);
     };
 }

@@ -25,7 +25,12 @@ class ThemeContextMenuControllerActions {
 
     requireCurrentTheme(errorKey = 'THEME_DATA_UNAVAILABLE') {
         const theme = this.getCurrentTheme();
-        return theme || (this.notifyError(errorKey), null);
+        if (theme) {
+            return theme;
+        }
+
+        this.notifyError(errorKey);
+        return null;
     }
 
     requireCurrentThemeName(errorKey = 'THEME_DATA_UNAVAILABLE') {
@@ -39,7 +44,12 @@ class ThemeContextMenuControllerActions {
 
     requireService(name, errorKey) {
         const service = this.getService(name);
-        return service || (this.notifyError(errorKey), null);
+        if (service) {
+            return service;
+        }
+
+        this.notifyError(errorKey);
+        return null;
     }
 
     notifyError(messageKey, params = null) {
@@ -62,26 +72,77 @@ class ThemeContextMenuControllerActions {
         });
 
         await this.closeMenu();
-        applyResult?.success
-            ? (this.notifySuccess('THEME_APPLY_SUCCESS_NOTIFICATION', {theme: themeName}),
-            this.soundService?.playSound?.('theme_apply.wav'))
-            : applyResult && (() => {
-                const reason = applyResult.error || this.translate('UNKNOWN_ERROR');
-                this.notifyError('THEME_APPLY_ERROR_MESSAGE', {error: reason});
-            })();
+        if (applyResult?.success) {
+            this.notifySuccess('THEME_APPLY_SUCCESS_NOTIFICATION', {theme: themeName});
+            this.soundService?.playSound?.('theme_apply.wav');
+            return;
+        }
+
+        if (!applyResult) {
+            return;
+        }
+
+        const reason = applyResult.error || this.translate('UNKNOWN_ERROR');
+        this.notifyError('THEME_APPLY_ERROR_MESSAGE', {error: reason});
     }
 
     async deleteTheme(options = {}) {
         const themeName = this.requireCurrentThemeName();
-        const isNetworkTheme = this.currentMenuData?.isNetwork === true;
         if (!themeName) return;
-        if (isNetworkTheme) return this.notifyError('THEME_DELETE_ONLY_LOCAL');
+
+        if (this.currentMenuData?.isNetwork === true) {
+            return this.notifyError('THEME_DELETE_ONLY_LOCAL');
+        }
+
         const themePath = this.getLocalThemePath(themeName, this.currentMenuData.theme);
         this.confirmAndDelete(themeName, themePath, options);
     }
 
     getMainWindowForDialogs() {
         return this.view?.popup || this.getThemeSelectorView()?.window || null;
+    }
+
+    getHyprlandOverrideParentWindow(themeSelectorView) {
+        return this.view?.popup?.get_transient_for?.()
+            || themeSelectorView?.window
+            || this.getMainWindowForDialogs();
+    }
+
+    resolveHyprlandOverrideContext() {
+        const theme = this.requireCurrentTheme();
+        const themeSelectorView = this.getThemeSelectorView();
+        const openPopup = themeSelectorView?.showHyprlandOverridePopup;
+        if (!openPopup) {
+            this.notifyError('HYPRLAND_OVERRIDE_SERVICE_UNAVAILABLE');
+            return null;
+        }
+
+        return theme ? {
+            theme,
+            themeSelectorView,
+            openPopup,
+            parentWindow: this.getHyprlandOverrideParentWindow(themeSelectorView)
+        } : null;
+    }
+
+    resolveReconstructionContext() {
+        const theme = this.requireCurrentTheme();
+        if (!theme) return null;
+
+        const themeName = theme.name;
+        const themePath = this.getLocalThemePath(themeName, theme);
+        if (!themePath) {
+            this.notifyError('THEME_PATH_NOT_FOUND');
+            return null;
+        }
+
+        const reconstructionScriptPath = `${themePath}/reconstruction.sh`;
+        if (!Gio.File.new_for_path(reconstructionScriptPath).query_exists(null)) {
+            this.notifyError('RECONSTRUCTION_SCRIPT_NOT_FOUND');
+            return null;
+        }
+
+        return { theme, themeName, themePath, reconstructionScriptPath };
     }
 
     confirmAndDelete(themeName, themePath, options = {}) {
@@ -109,40 +170,42 @@ class ThemeContextMenuControllerActions {
         proc.wait_check_async(null, (self, res) => {
             const ok = tryOrNull('ThemeContextMenuControllerActions.waitDeleteTheme', () => self.wait_check_finish(res)) === true;
 
-                GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                    options.onProgress?.('complete', {success: ok});
-                    ok
-                        ? (() => {
-                            this.notifySuccess('THEME_DELETE_SUCCESS_NOTIFICATION', {theme: themeName});
-                            this.soundService?.playSound?.('button_hover.wav');
+            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                options.onProgress?.('complete', {success: ok});
+                if (ok) {
+                    this.handleDeleteThemeSuccess(themeName);
+                } else {
+                    const [, , stderr] = self.communicate_utf8(null, null);
+                    const errText = stderr || this.translate('UNKNOWN_ERROR');
+                    this.notifyError('THEME_DELETE_ERROR_WITH_REASON', {error: errText});
+                    this.closeMenu();
+                }
 
-                            const themeRepository = this.getService('themeRepository');
-                            themeRepository?.invalidateCache?.();
-                            themeRepository?.clearCache?.();
-
-                            const themeSelectorStore = this.getService('themeSelectorStore');
-                            themeSelectorStore?.removeTheme?.(themeName);
-
-                            const bus = this.getService('eventBus');
-                            bus?.emit?.(Events.THEME_REPOSITORY_UPDATED);
-                            bus?.emit?.(Events.UI_REFRESH_REQUESTED, {tab: 'local'});
-
-                            this.closeMenu();
-                            GLib.timeout_add(GLib.PRIORITY_DEFAULT, TIMEOUTS.UI_REFRESH_MS, () => {
-                                this.refreshThemesList();
-                                return GLib.SOURCE_REMOVE;
-                            });
-                        })()
-                        : (() => {
-                            const [, , stderr] = self.communicate_utf8(null, null);
-                            const errText = stderr || this.translate('UNKNOWN_ERROR');
-                            this.notifyError('THEME_DELETE_ERROR_WITH_REASON', {error: errText});
-                            this.closeMenu();
-                        })();
-
-                    return GLib.SOURCE_REMOVE;
-                });
+                return GLib.SOURCE_REMOVE;
             });
+        });
+    }
+
+    handleDeleteThemeSuccess(themeName) {
+        this.notifySuccess('THEME_DELETE_SUCCESS_NOTIFICATION', {theme: themeName});
+        this.soundService?.playSound?.('button_hover.wav');
+
+        const themeRepository = this.getService('themeRepository');
+        themeRepository?.invalidateCache?.();
+        themeRepository?.clearCache?.();
+
+        const themeSelectorStore = this.getService('themeSelectorStore');
+        themeSelectorStore?.removeTheme?.(themeName);
+
+        const bus = this.getService('eventBus');
+        bus?.emit?.(Events.THEME_REPOSITORY_UPDATED);
+        bus?.emit?.(Events.UI_REFRESH_REQUESTED, {tab: 'local'});
+
+        this.closeMenu();
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, TIMEOUTS.UI_REFRESH_MS, () => {
+            this.refreshThemesList();
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     clearRepositoryCaches(themeRepository, themeSelectorController) {
@@ -211,29 +274,31 @@ class ThemeContextMenuControllerActions {
 
     async installTheme() {
         const themeName = this.requireCurrentThemeName();
-        themeName && (this.notify('INFO_GENERIC', 'NETWORK_THEME_DOWNLOAD_UNAVAILABLE'),
-        this.soundService?.playSound?.('installed.wav'));
+        if (!themeName) {
+            return;
+        }
+
+        this.notify('INFO_GENERIC', 'NETWORK_THEME_DOWNLOAD_UNAVAILABLE');
+        this.soundService?.playSound?.('installed.wav');
     }
 
     showHyprlandOverrides() {
-        const theme = this.requireCurrentTheme();
-        const themeSelectorView = this.getThemeSelectorView();
-        const openPopup = themeSelectorView?.showHyprlandOverridePopup;
-        if (!openPopup) return this.notify('ERROR', 'HYPRLAND_OVERRIDE_SERVICE_UNAVAILABLE');
-        if (!theme) return;
-        openPopup.call(themeSelectorView, theme, this.view?.popup);
-        this.soundService?.playSound?.('button_hover.wav');
+        const context = this.resolveHyprlandOverrideContext();
+        if (!context) return;
+
+        const { theme, themeSelectorView, openPopup, parentWindow } = context;
+        this.closeMenu();
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 75, () => {
+            openPopup.call(themeSelectorView, theme, parentWindow);
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     async applyWithReconstructionScript() {
-        const theme = this.requireCurrentTheme();
-        if (!theme) return;
+        const context = this.resolveReconstructionContext();
+        if (!context) return;
 
-        let themeName = theme.name,
-            themePath = this.getLocalThemePath(themeName, theme),
-            reconstructionScriptPath = themePath && `${themePath}/reconstruction.sh`;
-        if (!themePath) return this.notify('ERROR', 'THEME_PATH_NOT_FOUND');
-        if (!Gio.File.new_for_path(reconstructionScriptPath).query_exists(null)) return this.notify('ERROR', 'RECONSTRUCTION_SCRIPT_NOT_FOUND');
+        const { themeName, reconstructionScriptPath } = context;
 
         this.notify('INFO_GENERIC', 'APPLYING_THEME_WITH_SCRIPT');
         let applyResult = await this.applyThemeUseCase.execute(themeName, {
@@ -290,14 +355,14 @@ class ThemeContextMenuControllerActions {
             ) === true;
 
             GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                success
-                    ? (this.notify('SUCCESS', 'RECONSTRUCTION_SCRIPT_SUCCESS', {theme: themeName}),
-                    this.soundService?.playSound?.('installed.wav'))
-                    : (() => {
-                        const [, , stderr] = self.communicate_utf8(null, null);
-                        const errText = stderr?.trim() || this.translate('UNKNOWN_ERROR');
-                        this.notify('ERROR', 'RECONSTRUCTION_SCRIPT_ERROR', {error: errText});
-                    })();
+                if (success) {
+                    this.notify('SUCCESS', 'RECONSTRUCTION_SCRIPT_SUCCESS', {theme: themeName});
+                    this.soundService?.playSound?.('installed.wav');
+                } else {
+                    const [, , stderr] = self.communicate_utf8(null, null);
+                    const errText = stderr?.trim() || this.translate('UNKNOWN_ERROR');
+                    this.notify('ERROR', 'RECONSTRUCTION_SCRIPT_ERROR', {error: errText});
+                }
                 return GLib.SOURCE_REMOVE;
             });
         });

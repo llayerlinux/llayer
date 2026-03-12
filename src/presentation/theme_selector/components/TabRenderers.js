@@ -19,6 +19,7 @@ export class TabRenderers {
         this.getDI = deps.getDI || (() => null);
         this.getMoreSectionsView = deps.getMoreSectionsView || (() => null);
         this.getAboutView = deps.getAboutView || (() => null);
+        this.getAIDynamicView = deps.getAIDynamicView || (() => null);
     }
 
     resetGridView() {
@@ -26,34 +27,45 @@ export class TabRenderers {
         this.clearGridBox();
     }
 
+    attachGridContent(gridBox, content) {
+        this.detachFromParent(content);
+        if (!content.get_parent?.() && gridBox) {
+            gridBox.pack_start(content, true, true, 0);
+        }
+        gridBox?.show_all?.();
+    }
+
     renderViewToGrid(getView, unavailableKey, errorKey) {
         this.resetGridView();
         this.ensureThemeGridAttached();
-        let view = getView(),
-            content = view?.createContent?.(),
-            fallbackKey = !view ? unavailableKey : (!content ? errorKey : null);
-        return fallbackKey
-            ? this.showPlaceholder(this.t(fallbackKey))
-            : (() => {
-                const gridBox = this.getGridBox();
-                this.detachFromParent(content);
-                !content.get_parent?.() && gridBox && gridBox.pack_start(content, true, true, 0);
-                view.show?.();
-                gridBox?.show_all?.();
-            })();
+        const entry = this.resolveViewEntry(getView);
+        if (!entry) {
+            return this.showPlaceholder(this.t(unavailableKey));
+        }
+
+        if (!entry.content) {
+            return this.showPlaceholder(this.t(errorKey));
+        }
+
+        const gridBox = this.getGridBox();
+        this.attachGridContent(gridBox, entry.content);
+        entry.show?.();
     }
 
     prepareMainContent() {
         this.resetGridView();
         const mainContentBox = this.getMainContentBox();
-        return mainContentBox
-            ? (() => {
-                const scrollableGrid = this.getScrollableGrid();
-                scrollableGrid && (this.detachFromParent(scrollableGrid), scrollableGrid.hide?.());
-                mainContentBox.foreach?.(child => mainContentBox.remove(child));
-                return mainContentBox;
-            })()
-            : null;
+        if (!mainContentBox) {
+            return null;
+        }
+
+        const scrollableGrid = this.getScrollableGrid();
+        if (scrollableGrid) {
+            this.detachFromParent(scrollableGrid);
+            scrollableGrid.hide?.();
+        }
+        mainContentBox.foreach?.(child => mainContentBox.remove(child));
+        return mainContentBox;
     }
 
     attachContent(mainContentBox, content) {
@@ -63,21 +75,49 @@ export class TabRenderers {
         mainContentBox.show_all?.();
     }
 
-    renderSettings() {
+    showMainContentPlaceholder(key) {
+        return this.createPlaceholderInMainContent(this.t(key));
+    }
+
+    renderMainContent(resolveEntry, unavailableKey, errorKey) {
         const mainContentBox = this.prepareMainContent();
-        return mainContentBox
-            ? (() => {
-                const DI = this.getDI(),
-                      tweaksController = DI?.has?.('tweaksController') ? DI.get('tweaksController') : null,
-                      content = tweaksController?.open?.() || tweaksController?.view?.tweaksNotebookGlobal,
-                      placeholderKey = !tweaksController
-                          ? 'TWEAKS_UNAVAILABLE'
-                          : (!content ? 'TWEAKS_LOAD_ERROR' : null);
-                return placeholderKey
-                    ? this.createPlaceholderInMainContent(this.t(placeholderKey))
-                    : this.attachContent(mainContentBox, content);
-            })()
-            : undefined;
+        if (!mainContentBox) return;
+
+        const entry = resolveEntry?.();
+        if (!entry) {
+            return this.showMainContentPlaceholder(unavailableKey);
+        }
+
+        if (!entry.content) {
+            return this.showMainContentPlaceholder(errorKey);
+        }
+
+        this.attachContent(mainContentBox, entry.content);
+        entry.show?.();
+    }
+
+    resolveTweaksEntry() {
+        const DI = this.getDI();
+        const tweaksController = DI?.has?.('tweaksController') ? DI.get('tweaksController') : null;
+        return tweaksController && {
+            content: tweaksController.open?.() || tweaksController.view?.tweaksNotebookGlobal
+        };
+    }
+
+    resolveViewEntry(getView) {
+        const view = getView?.();
+        return view && {
+            content: view.createContent?.(),
+            show: () => view.show?.()
+        };
+    }
+
+    renderSettings() {
+        return this.renderMainContent(
+            () => this.resolveTweaksEntry(),
+            'TWEAKS_UNAVAILABLE',
+            'TWEAKS_LOAD_ERROR'
+        );
     }
 
     renderMoreSections() {
@@ -93,6 +133,14 @@ export class TabRenderers {
             () => this.getAboutView(),
             'ABOUT_UNAVAILABLE',
             'ABOUT_LOAD_ERROR'
+        );
+    }
+
+    renderAIDynamic() {
+        return this.renderMainContent(
+            () => this.resolveViewEntry(() => this.getAIDynamicView()),
+            'AI_DYNAMIC_UNAVAILABLE',
+            'AI_DYNAMIC_LOAD_ERROR'
         );
     }
 }

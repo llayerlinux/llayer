@@ -1,5 +1,7 @@
 import { HyprlandConfigParser } from './HyprlandConfigParser.js';
+import { HyprlandConfigGenerator } from './HyprlandConfigGenerator.js';
 import { HyprlandMigration } from './HyprlandMigration.js';
+import { LegacyMigrationService } from './LegacyMigrationService.js';
 import { applyHyprlandParameterServiceApply } from './HyprlandParameterServiceApply.js';
 import { applyHyprlandParameterServiceBase } from './HyprlandParameterServiceBase.js';
 import { applyHyprlandParameterServiceEffective } from './HyprlandParameterServiceEffective.js';
@@ -15,6 +17,11 @@ export class HyprlandParameterService {
 
         this.configParser = new HyprlandConfigParser();
         this.migration = new HyprlandMigration(this.logger);
+        this.legacyMigrationService = new LegacyMigrationService((msg) => this.log(msg));
+        this.configGenerator = new HyprlandConfigGenerator({
+            logger: this.logger,
+            legacyMigrationService: this.legacyMigrationService
+        });
         this._userHyprlandVersion = null;
     }
 }

@@ -108,7 +108,8 @@ class ThemeSelectorViewCore {
             getScrollableGrid: () => this.scrollableGrid,
             getDI: () => this.DI,
             getMoreSectionsView: () => this.moreSectionsView,
-            getAboutView: () => this.aboutView
+            getAboutView: () => this.aboutView,
+            getAIDynamicView: () => this.aiDynamicView
         });
         this.storeHandlers = new StoreHandlersModule.StoreHandlers({
             getController: () => this.controller,
@@ -179,6 +180,10 @@ class ThemeSelectorViewCore {
             state = isPlainObject(capturedState) ? capturedState : {},
             shouldRemainVisible = this.isVisible || state.wasVisible;
 
+        this.logPanelComponent?.destroy?.();
+        this.logPanelComponent = null;
+        this.logPanel = null;
+
         this.windowManager?.clearPulseTimer();
         this.contentBox.foreach((child) => {
             this.contentBox.remove(child);
@@ -191,11 +196,15 @@ class ThemeSelectorViewCore {
         let header = this.createHeaderBox(),
             bottomBar = this.createBottomBar();
         this.networkProgressArea = this.createNetworkProgressArea();
+        this.conversionBanner = this.createConversionBanner?.();
+        this.logPanel = this.createLogPanel?.();
         for (const [widget, property, expand] of [
             [header, 'headerBox', false],
             [this.networkProgressArea, null, false],
             [this.mainContentBox, null, true],
             [bottomBar, 'bottomBar', false],
+            [this.logPanel, 'logPanel', false],
+            [this.conversionBanner, 'conversionBanner', false],
             [this.downloadsContainer, null, false]
         ].filter(([widget]) => Boolean(widget))) {
             this.contentBox.pack_start(widget, expand, expand, 0);
@@ -263,13 +272,13 @@ class ThemeSelectorViewCore {
     }
 
     refreshActiveView() {
-        const store = this.controller?.store,
-            selectedTheme = store?.get?.('selectedTheme') ?? null,
-            settingsFromStore = store?.get?.('settings'),
-            currentTheme = store?.get?.('currentTheme')
-                || (isPlainObject(settingsFromStore) ? settingsFromStore.theme : null)
-                || this.controller?.settingsService?.getCurrentTheme?.()
-                || null;
+        const store = this.controller?.store;
+        const selectedTheme = store?.get?.('selectedTheme') ?? null;
+        const settingsFromStore = store?.get?.('settings');
+        const currentTheme = store?.get?.('currentTheme')
+            || (isPlainObject(settingsFromStore) ? settingsFromStore.theme : null)
+            || this.controller?.settingsService?.getCurrentTheme?.()
+            || null;
 
         this.updateMainContent(this.currentTab);
         this.setActiveButtonByTab(this.currentTab);
@@ -281,9 +290,28 @@ class ThemeSelectorViewCore {
     }
 
     applyThemeSelection(currentTheme, selectedTheme, store) {
-        currentTheme && (store?.setCurrentTheme?.(currentTheme), this.updateCurrentThemeStyles(currentTheme));
-        selectedTheme && store?.selectTheme?.(selectedTheme);
-        selectedTheme?.name && selectedTheme.name !== currentTheme && this.updateCurrentThemeStyles(selectedTheme.name);
+        if (currentTheme) {
+            store?.setCurrentTheme?.(currentTheme);
+            this.updateCurrentThemeStyles(currentTheme);
+        }
+        if (selectedTheme) {
+            store?.selectTheme?.(selectedTheme);
+        }
+        if (selectedTheme?.name && selectedTheme.name !== currentTheme) {
+            this.updateCurrentThemeStyles(selectedTheme.name);
+        }
+    }
+
+    onSupporterToggle() {
+        const supporterProvider = this.container?.get?.('supporterProvider');
+        if (!supporterProvider) return;
+        supporterProvider.toggle();
+        const appSettingsController = this.tryGetService('appSettingsController');
+        appSettingsController?.close?.();
+        if (this.supporterRibbon) {
+            this.supporterRibbon.set_visible(supporterProvider.isActive());
+        }
+        this.rebuildMainLayout();
     }
 
     openSettingsDialog() {
@@ -336,12 +364,16 @@ class ThemeSelectorViewCore {
 
     renderNetworkThemesDirect(themes, pagination = null) {
         const list = Array.isArray(themes) ? themes : [];
-        pagination && this.controller && (
+        if (pagination && this.controller) {
             this.controller.networkPagination = normalizePagination(
                 pagination,
                 isPlainObject(this.controller.networkPagination) ? this.controller.networkPagination : DEFAULT_NETWORK_PAGINATION,
-                list.length));
-        this.currentTab !== ViewTabName.NETWORK && (this.currentTab = ViewTabName.NETWORK);
+                list.length
+            );
+        }
+        if (this.currentTab !== ViewTabName.NETWORK) {
+            this.currentTab = ViewTabName.NETWORK;
+        }
 
         this.hideNetworkProgressBar();
         this.clearGridBox();

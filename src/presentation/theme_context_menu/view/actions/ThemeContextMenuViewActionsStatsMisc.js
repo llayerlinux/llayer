@@ -27,29 +27,18 @@ class ThemeContextMenuViewActionsStatsMisc {
         }
 
         this.menuData = newMenuData;
-        let theme = newMenuData.theme && typeof newMenuData.theme === 'object'
+        const theme = newMenuData.theme && typeof newMenuData.theme === 'object'
             ? newMenuData.theme
             : {};
-        let needsReapply = !newMenuData.isNetwork && theme?.needsReapply;
-        this.applyActionButton && (() => {
-            const style = this.applyActionButton.get_style_context();
-            needsReapply ? style.add_class('apply-needs-reapply') : style.remove_class('apply-needs-reapply');
-            this.applyActionButton.set_tooltip_text(needsReapply ? this.translate('REAPPLY_REQUIRED_NOTICE') : null);
-        })();
-        this.reapplyNoticeLabel && (needsReapply ? this.reapplyNoticeLabel.show() : this.reapplyNoticeLabel.hide());
+        const needsReapply = !newMenuData.isNetwork && theme?.needsReapply;
 
-        this.statsLabels && (() => {
-            const stats = this.buildStatsSnapshot(theme);
-            const sessionId = this.menuSessionId;
-            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                this.runInCurrentMenuSession(sessionId, () => {
-                    this.applyStatsToLabels(this.statsLabels, stats);
-                });
-                return GLib.SOURCE_REMOVE;
-            });
-        })();
+        this.updateApplyActionState(needsReapply);
+        this.toggleReapplyNotice(needsReapply);
+        this.queueStatsRefresh(theme);
 
-        theme.networkDataLoaded && !newMenuData.isNetwork && this.showViewToggleButton(true, this.menuSessionId);
+        if (theme.networkDataLoaded && !newMenuData.isNetwork) {
+            this.showViewToggleButton(true, this.menuSessionId);
+        }
     }
 
     showViewToggleButton(show, sessionId = this.menuSessionId) {
@@ -76,14 +65,27 @@ class ThemeContextMenuViewActionsStatsMisc {
                 : `echo -n "${text}" | xclip -selection clipboard`
         );
 
-        this.controller?.container?.get?.('settingsManager')?.get?.('flyDisableExternalNotifications') !== true && (() => {
-            const copiedTitle = this.translate('URL_COPIED').replace(/\"/g, '\\"'),
-                  snippet = `${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`.replace(/\"/g, '\\"');
-            GLib.spawn_command_line_async(`${Commands.NOTIFY_SEND} -a \"LastLayer\" \"${copiedTitle}\" \"${snippet}\"`);
-        })();
+        if (this.controller?.container?.get?.('settingsManager')?.get?.('flyDisableExternalNotifications') === true) {
+            return;
+        }
+
+        const copiedTitle = this.translate('URL_COPIED').replace(/\"/g, '\\"');
+        const snippet = `${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`.replace(/\"/g, '\\"');
+        GLib.spawn_command_line_async(`${Commands.NOTIFY_SEND} -a \"LastLayer\" \"${copiedTitle}\" \"${snippet}\"`);
     }
 
     positionMenu(triggerWidget, event = null) {
+        if (!this.popup) {
+            return;
+        }
+
+        const isWayland = this.isWaylandMenuPlacement();
+        if (isWayland) {
+            const parentWindow = this.popup.get_transient_for?.() || null;
+            this.popup.set_position(parentWindow ? Gtk.WindowPosition.CENTER_ON_PARENT : Gtk.WindowPosition.CENTER);
+            return;
+        }
+
         let coords = this.determineMenuPosition(triggerWidget, event);
         if (!coords) {
             this.popup.set_position(Gtk.WindowPosition.CENTER);
@@ -97,6 +99,51 @@ class ThemeContextMenuViewActionsStatsMisc {
             clamp(coords[0], screen.get_width(), mw),
             clamp(coords[1], screen.get_height(), mh || 580)
         );
+    }
+
+    isWaylandMenuPlacement() {
+        const sessionType = (GLib.getenv('XDG_SESSION_TYPE') || '').trim().toLowerCase();
+        if (sessionType === 'wayland') {
+            return true;
+        }
+
+        const displayName = Gdk.Display.get_default?.()?.get_name?.() || '';
+        return displayName.toLowerCase().includes('wayland');
+    }
+
+    updateApplyActionState(needsReapply) {
+        if (!this.applyActionButton) {
+            return;
+        }
+
+        const style = this.applyActionButton.get_style_context();
+        needsReapply ? style.add_class('apply-needs-reapply') : style.remove_class('apply-needs-reapply');
+        this.applyActionButton.set_tooltip_text(
+            needsReapply ? this.translate('REAPPLY_REQUIRED_NOTICE') : null
+        );
+    }
+
+    toggleReapplyNotice(needsReapply) {
+        if (!this.reapplyNoticeLabel) {
+            return;
+        }
+
+        needsReapply ? this.reapplyNoticeLabel.show() : this.reapplyNoticeLabel.hide();
+    }
+
+    queueStatsRefresh(theme) {
+        if (!this.statsLabels) {
+            return;
+        }
+
+        const stats = this.buildStatsSnapshot(theme);
+        const sessionId = this.menuSessionId;
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this.runInCurrentMenuSession(sessionId, () => {
+                this.applyStatsToLabels(this.statsLabels, stats);
+            });
+            return GLib.SOURCE_REMOVE;
+        });
     }
 }
 

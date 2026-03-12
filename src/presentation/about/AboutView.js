@@ -1,10 +1,10 @@
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
-import WebKit2 from 'gi://WebKit2?version=4.0';
 import { createRoundedImage, addPointerCursor } from '../common/ViewUtils.js';
+import { getWebKit2 } from '../common/WebKitUtils.js';
 import { Commands } from '../../infrastructure/constants/Commands.js';
 import { DEFAULT_SUPPORT_URL, appPageUrl } from '../../infrastructure/constants/AppUrls.js';
-import { suppressedError } from '../../infrastructure/utils/ErrorUtils.js';
+import { suppressedError, tryOrNullAsync } from '../../infrastructure/utils/ErrorUtils.js';
 
 export class AboutView {
     constructor(controller, logger = null) {
@@ -60,6 +60,10 @@ export class AboutView {
     }
 
     createConfiguredWebView(url) {
+        const WebKit2 = getWebKit2();
+        if (!WebKit2) {
+            return this.createWebFallback();
+        }
         const webView = new WebKit2.WebView();
         this.setWebViewFocusBehavior(webView);
         this.attachRoundedCss(webView);
@@ -69,6 +73,19 @@ export class AboutView {
             loadEvent === WebKit2.LoadEvent.FINISHED && this.scrollWebviewToTop(view);
         });
         return webView;
+    }
+
+    createWebFallback() {
+        const label = new Gtk.Label({
+            label: 'WebKit2 not installed\nInstall: webkit2gtk-4.1',
+            justify: Gtk.Justification.CENTER,
+            halign: Gtk.Align.CENTER,
+            valign: Gtk.Align.CENTER,
+            wrap: true
+        });
+        label.set_size_request(360, 160 * 4);
+        label.get_style_context().add_class('dim-label');
+        return label;
     }
 
     createAboutTab() {
@@ -205,29 +222,38 @@ export class AboutView {
 
     createKofiIcon() {
         const kofiPath = `${this.currentDir}/assets/kofi.png`;
-        return createRoundedImage
-	            ? createRoundedImage(kofiPath, {
-	                size: 40,
-	                radius: 12,
-	                placeholderIcon: 'heart-symbolic',
-	                placeholderSize: Gtk.IconSize.LARGE_TOOLBAR
-	            })
-            : (() => {
-                const img = new Gtk.Image();
-                img.set_from_icon_name('heart-symbolic', Gtk.IconSize.LARGE_TOOLBAR);
-                return img;
-            })();
+        if (createRoundedImage) {
+            return createRoundedImage(kofiPath, {
+                size: 40,
+                radius: 12,
+                placeholderIcon: 'heart-symbolic',
+                placeholderSize: Gtk.IconSize.LARGE_TOOLBAR
+            });
+        }
+
+        const img = new Gtk.Image();
+        img.set_from_icon_name('heart-symbolic', Gtk.IconSize.LARGE_TOOLBAR);
+        return img;
     }
 
     playSupportClickSound() {
         const soundService = this.controller?.container?.get?.('soundService');
-        const primaryPromise = soundService?.playSupportClickSound?.();
-        if (primaryPromise && typeof primaryPromise.catch === 'function') {
-            primaryPromise.catch((error) => suppressedError('AboutView.playSupportClickSound.primary', error));
+        const primarySound = soundService?.playSupportClickSound?.();
+        if (primarySound && typeof primarySound.then === 'function') {
+            tryOrNullAsync(
+                'AboutView.playSupportClickSound.primary',
+                () => primarySound
+            );
             return;
         }
-        soundService?.playSound?.('support_click.wav')
-            ?.catch?.((error) => suppressedError('AboutView.playSupportClickSound.fallback', error));
+
+        const fallbackSound = soundService?.playSound?.('support_click.wav');
+        if (fallbackSound && typeof fallbackSound.then === 'function') {
+            tryOrNullAsync(
+                'AboutView.playSupportClickSound.fallback',
+                () => fallbackSound
+            );
+        }
     }
 
     handleSupportButtonClick() {
@@ -293,6 +319,9 @@ export class AboutView {
     }
 
     scrollWebviewToTop(webview) {
+        if (!(webview && typeof webview.run_javascript === 'function')) {
+            return;
+        }
         GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             webview.run_javascript('window.scrollTo(0, 0);', null, null);
             return GLib.SOURCE_REMOVE;

@@ -50,6 +50,35 @@ update_restore_point_timestamp() {
     printf '{\n  "restore_point_last_update": "%s"\n}\n' "$timestamp" > "$settings_file"
 }
 
+write_code_revision_timestamp() {
+    local source_dir="$1"
+    local install_dir="$2"
+    local source_stamp_file="$source_dir/.code_revision_timestamp"
+    local stamp_file="$install_dir/.code_revision_timestamp"
+    local source_stamp=""
+    local latest_epoch=""
+
+    if [ -f "$source_stamp_file" ]; then
+        source_stamp=$(tr -d '\r' < "$source_stamp_file" | head -n 1)
+    fi
+
+    if [ -n "$source_stamp" ]; then
+        printf '%s\n' "$source_stamp" > "$stamp_file"
+        return
+    fi
+
+    latest_epoch=$(find "$source_dir/src" "$source_dir/styles" "$source_dir/assets" -type f -printf '%T@\n' 2>/dev/null \
+        | awk 'BEGIN { max = 0 } { value = int($1); if (value > max) max = value } END { print max }')
+
+    if [ -z "$latest_epoch" ] || [ "$latest_epoch" -le 0 ]; then
+        latest_epoch=$(date +%s)
+    fi
+
+    local formatted
+    formatted=$(date -d "@$latest_epoch" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')
+    printf '%s\n' "$formatted" > "$stamp_file"
+}
+
 
 if [ "$EUID" -eq 0 ]; then
     print_message "Please do not run this script as root" "$RED"
@@ -74,8 +103,25 @@ fi
 
 print_message "Checking dependencies..." "$YELLOW"
 
-if ! command -v gjs &>/dev/null; then
-    print_message "Error: GJS is not installed" "$RED"
+SCRIPT_DIR_SRC="$(cd "$(dirname "$0")" && pwd)"
+COMMON_DEPS_SCRIPT="$(cd "$SCRIPT_DIR_SRC/.." && pwd)/common/deps.sh"
+LOCAL_DEPS_SCRIPT="$SCRIPT_DIR_SRC/scripts/deps.sh"
+if [ -f "$COMMON_DEPS_SCRIPT" ]; then
+    source "$COMMON_DEPS_SCRIPT"
+elif [ -f "$LOCAL_DEPS_SCRIPT" ]; then
+    source "$LOCAL_DEPS_SCRIPT"
+else
+    print_message "Error: dependency helper not found" "$RED"
+    exit 1
+fi
+
+if ! ll_dep_install_if_missing_cmd "pkg-config" "pkg-config"; then
+    print_message "Error: pkg-config is not installed and auto-install failed" "$RED"
+    exit 1
+fi
+
+if ! ll_dep_install_if_missing_cmd "gjs" "gjs"; then
+    print_message "Error: GJS is not installed and auto-install failed" "$RED"
     exit 1
 fi
 
@@ -89,24 +135,36 @@ if [ -z "$GJS_MAJOR" ] || [ -z "$GJS_MINOR" ] || [ "$GJS_MAJOR" -lt 1 ] || ([ "$
     exit 1
 fi
 
+if ! ll_dep_install_if_missing_gi_namespace_any "soup-gi" "Soup" "3.0" "2.4"; then
+    print_message "Error: Soup GI typelib (3.0/2.4) is not installed and auto-install failed" "$RED"
+    exit 1
+fi
+
+if ! ll_dep_install_if_missing_gi_namespace_any "webkit2-gi-4.0" "WebKit2" "4.1" "4.0"; then
+    print_message "Error: WebKit2 GI typelib (4.1/4.0) is not installed and auto-install failed" "$RED"
+    exit 1
+fi
+
 
 MISSING_DEPS=()
 
 
-if ! command -v swww &>/dev/null; then
+if ! ll_dep_install_if_missing_cmd "swww" "swww"; then
     MISSING_DEPS+=("swww")
 fi
 
 
-if ! command -v yad &>/dev/null; then
+if ! ll_dep_install_if_missing_cmd "yad" "yad"; then
     MISSING_DEPS+=("yad")
 fi
 
-if ! pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
+if ! ll_dep_install_if_missing_webkit; then
+    MISSING_DEPS+=("webkit2gtk")
+elif ! pkg-config --exists webkit2gtk-4.1 2>/dev/null && ! pkg-config --exists webkit2gtk-4.0 2>/dev/null; then
     MISSING_DEPS+=("webkit2gtk")
 fi
 
-if ! command -v jq &>/dev/null; then
+if ! ll_dep_install_if_missing_cmd "jq" "jq"; then
     MISSING_DEPS+=("jq")
 fi
 
@@ -129,22 +187,26 @@ rm -rf "$INSTALL_DIR/assets"
 rm -rf "$INSTALL_DIR/styles"
 rm -rf "$INSTALL_DIR/src"
 
-SCRIPT_DIR_SRC="$(cd "$(dirname "$0")" && pwd)"
-
 cp -rf "$SCRIPT_DIR_SRC/assets" "$INSTALL_DIR/assets"
 cp -rf "$SCRIPT_DIR_SRC/styles" "$INSTALL_DIR/styles"
 cp -rf "$SCRIPT_DIR_SRC/src" "$INSTALL_DIR/src"
 if [ -d "$SCRIPT_DIR_SRC/html" ]; then
     cp -rf "$SCRIPT_DIR_SRC/html" "$INSTALL_DIR/html"
 fi
+write_code_revision_timestamp "$SCRIPT_DIR_SRC" "$INSTALL_DIR"
 
-print_message "Checking syntax..." "$YELLOW"
-if ! gjs -m "$INSTALL_DIR/src/app/main.js" --syntax-check; then
-    print_message "Error: Syntax check failed" "$RED"
+mkdir -p "$HOME/.lastlayer_persistent"
+[ -f "$HOME/.lastlayer_persistent/global_recommendations.json" ] || printf '{}\n' > "$HOME/.lastlayer_persistent/global_recommendations.json"
+[ -f "$INSTALL_DIR/global_recommendations.json" ] || printf '{}\n' > "$INSTALL_DIR/global_recommendations.json"
+[ -f "$INSTALL_DIR/src/infrastructure/hyprland/global_recommendations.json" ] || printf '{}\n' > "$INSTALL_DIR/src/infrastructure/hyprland/global_recommendations.json"
+
+print_message "Checking runtime entrypoint..." "$YELLOW"
+if [ ! -f "$INSTALL_DIR/src/app/main.js" ]; then
+    print_message "Error: main entrypoint is missing" "$RED"
     exit 1
 fi
 
-print_message "Syntax check passed!" "$GREEN"
+print_message "Runtime entrypoint check passed!" "$GREEN"
 
 print_message "Installing LastLayer scripts..." "$YELLOW"
 cp -f "$SCRIPT_DIR_SRC/scripts/"*.sh "$SCRIPT_DIR/" 2>/dev/null || true
@@ -163,7 +225,7 @@ RESTORE_LOG="$HOME/.cache/lastlayer/install_restore_point.log"
 mkdir -p "$(dirname "$RESTORE_LOG")"
 
 if [ -x "$SCRIPT_DIR/start_point_update.sh" ]; then
-    print_message "Creating default restore point…" "$YELLOW"
+    print_message "Creating default restore pointРІР‚В¦" "$YELLOW"
     timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     update_restore_point_timestamp "$timestamp"
     if command -v nohup &>/dev/null; then
@@ -190,7 +252,7 @@ else
 fi
 
 cat > "$BIN_DIR/lastlayer" << 'EOF'
-
+#!/usr/bin/env bash
 INSTALL_DIR="$HOME/.config/lastlayer"
 
 if [ ! -d "$INSTALL_DIR/src" ]; then
@@ -200,22 +262,39 @@ fi
 
 cd "$INSTALL_DIR" || exit 1
 
-if ! gjs -m src/app/main.js --syntax-check >/dev/null 2>&1; then
-    echo "Error: LastLayer files are corrupted or incomplete. Please reinstall."
-    exit 1
-fi
-
 exec gjs -m src/app/main.js "$@"
 EOF
 
 chmod +x "$BIN_DIR/lastlayer"
 
 cat > "$BIN_DIR/llayer" << 'EOF'
-
+#!/usr/bin/env bash
 exec "$HOME/.local/bin/lastlayer" "$@"
 EOF
 
 chmod +x "$BIN_DIR/llayer"
+
+install_global_launchers() {
+    local global_bin="/usr/local/bin"
+    local target="$BIN_DIR/lastlayer"
+    if [ ! -d "$global_bin" ]; then
+        if [ -w "/usr/local" ]; then
+            mkdir -p "$global_bin" 2>/dev/null || true
+        elif command -v sudo &>/dev/null; then
+            sudo mkdir -p "$global_bin" 2>/dev/null || true
+        fi
+    fi
+    if [ -w "$global_bin" ]; then
+        ln -sf "$target" "$global_bin/lastlayer" 2>/dev/null || true
+        ln -sf "$target" "$global_bin/llayer" 2>/dev/null || true
+    elif command -v sudo &>/dev/null; then
+        sudo ln -sf "$target" "$global_bin/lastlayer" 2>/dev/null || true
+        sudo ln -sf "$target" "$global_bin/llayer" 2>/dev/null || true
+    fi
+}
+
+install_global_launchers
+hash -r 2>/dev/null || true
 
 cat > "$DESKTOP_DIR/lastlayer.desktop" << EOF
 [Desktop Entry]
@@ -244,7 +323,9 @@ add_to_path() {
 
 
 add_to_path "$HOME/.bashrc" 'export PATH="$HOME/.local/bin:$PATH"'
+add_to_path "$HOME/.bash_profile" 'export PATH="$HOME/.local/bin:$PATH"'
 add_to_path "$HOME/.zshrc" 'export PATH="$HOME/.local/bin:$PATH"'
+add_to_path "$HOME/.zprofile" 'export PATH="$HOME/.local/bin:$PATH"'
 add_to_path "$HOME/.profile" 'export PATH="$HOME/.local/bin:$PATH"'
 
 
@@ -268,6 +349,9 @@ case $SHELL in
         source "$HOME/.config/fish/conf.d/lastlayer.fish" 2>/dev/null
         ;;
 esac
+
+mkdir -p "$HOME/.config/environment.d"
+printf 'PATH=%s\n' "$HOME/.local/bin:$PATH" > "$HOME/.config/environment.d/lastlayer.conf"
 
 
 HYPR_DIR="$HOME/.config/hypr"
@@ -335,6 +419,10 @@ else
 fi
 
 print_message "Installation completed successfully!" "$GREEN"
+if ! command -v lastlayer >/dev/null 2>&1; then
+    print_message "Current shell PATH is not updated yet." "$YELLOW"
+    print_message "Run: export PATH=\"\$HOME/.local/bin:\$PATH\" && hash -r" "$YELLOW"
+fi
 print_message "You can launch LastLayer in three ways:" "$GREEN"
 print_message "1. Desktop shortcut: LastLayer" "$GREEN"
 print_message "2. Hotkey: SUPER+$USED_KEY (toggles the popup)" "$GREEN"

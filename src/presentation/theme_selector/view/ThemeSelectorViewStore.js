@@ -40,6 +40,15 @@ class ThemeSelectorViewStore {
         return this.DI?.get?.('tweaksController') ?? null;
     }
 
+    renderAuxiliaryTab(rendererName) {
+        this.tabRenderers?.[rendererName]?.();
+    }
+
+    updateThemeStylesIfFresh(themeName) {
+        if (!themeName || (themeName === 'default' && this._defaultThemeStale)) return;
+        this.updateCurrentThemeStyles(themeName);
+    }
+
     exitTweaksTab() {
         this.getTweaksController()?.view?.exitTweaksTab?.();
     }
@@ -147,19 +156,19 @@ class ThemeSelectorViewStore {
     }
 
     renderSettingsTab() {
-        this.tabRenderers?.renderSettings?.();
+        this.renderAuxiliaryTab('renderSettings');
     }
 
     renderMoreSectionsTab() {
-        this.tabRenderers?.renderMoreSections?.();
+        this.renderAuxiliaryTab('renderMoreSections');
     }
 
     renderAboutTab() {
-        this.tabRenderers?.renderAbout?.();
+        this.renderAuxiliaryTab('renderAbout');
     }
 
     renderAIDynamicTab() {
-        this.tabRenderers?.renderAIDynamic?.();
+        this.renderAuxiliaryTab('renderAIDynamic');
     }
 
     subscribeToStore() {
@@ -185,13 +194,10 @@ class ThemeSelectorViewStore {
                 onLocalLoadingStateChanged: (state) => view.handleLocalLoadingStateChange(state),
                 onNetworkLoadingStateChanged: (state) => view.handleNetworkLoadingStateChange(state),
                 onCurrentThemeChanged: (themeName) => {
-                    if (!themeName || (themeName === 'default' && view._defaultThemeStale)) return;
-                    view.updateCurrentThemeStyles(themeName);
+                    view.updateThemeStylesIfFresh(themeName);
                 },
                 onSelectedThemeChanged: (theme) => {
-                    const themeName = theme?.name;
-                    if (!themeName || (themeName === 'default' && view._defaultThemeStale)) return;
-                    view.updateCurrentThemeStyles(themeName);
+                    view.updateThemeStylesIfFresh(theme?.name);
                 },
                 onActiveTabChanged: (tab) => view.handleActiveTabChanged(tab)
             }
@@ -216,8 +222,7 @@ class ThemeSelectorViewStore {
     }
 
     ensureThemesGridComponent() {
-        const canCreateGrid = !this.themesGridComponent && ThemesGridModule?.ThemesGrid;
-        if (!canCreateGrid) return;
+        if (this.themesGridComponent || !ThemesGridModule?.ThemesGrid) return;
 
         this.themesGridComponent = new ThemesGridModule.ThemesGrid({
             Box,

@@ -26,8 +26,12 @@ class ApplyThemeCore {
     }
 
     getGlobalTranslator() {
-        const translator = this.getFromContainer('translator');
-        return translator || this.getFromContainer('translationService')?.getTranslator?.() || null;
+        const translationService = this.getFromContainer('translationService');
+        const serviceTranslator = typeof translationService?.getTranslator === 'function'
+            ? translationService.getTranslator()
+            : null;
+        const containerTranslator = this.getFromContainer('translator');
+        return serviceTranslator || containerTranslator || null;
     }
 
     defaultSettings() {

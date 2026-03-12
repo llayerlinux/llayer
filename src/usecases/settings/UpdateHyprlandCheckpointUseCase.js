@@ -9,6 +9,8 @@ import {
     removeMissingEntries,
     removePath
 } from '../../infrastructure/utils/FileExecUtils.js';
+import { HyprlandConfigGenerator } from '../../infrastructure/hyprland/HyprlandConfigGenerator.js';
+import { tryOrNullAsync, tryRun } from '../../infrastructure/utils/ErrorUtils.js';
 const COMMANDS = Commands;
 
 export class UpdateHyprlandCheckpointUseCase {
@@ -17,6 +19,7 @@ export class UpdateHyprlandCheckpointUseCase {
                     runEmbeddedFindAndBackupHyprland = null,
                     updateBackupScript = null,
                     restorePointService = null,
+                    hyprlandConfigGenerator = null,
                     logger = null
                 } = {}) {
         this.execAsync = execAsync || null;
@@ -24,6 +27,7 @@ export class UpdateHyprlandCheckpointUseCase {
         this.updateBackupScript = updateBackupScript || null;
         this.restorePointService = restorePointService || null;
         this.logger = logger || null;
+        this.hyprlandConfigGenerator = hyprlandConfigGenerator || new HyprlandConfigGenerator({ logger });
         this.homeDir = GLib.get_home_dir();
     }
 
@@ -48,15 +52,13 @@ export class UpdateHyprlandCheckpointUseCase {
         const sourceTheme = (typeof theme === 'string' && theme.trim()) ? theme.trim() : null;
 
         if (service && typeof service.createManualRestorePoint === 'function') {
-            let snapshot = null;
-            try {
-                snapshot = await service.createManualRestorePoint({
+            const snapshot = await tryOrNullAsync(
+                'UpdateHyprlandCheckpointUseCase.createManualRestorePoint',
+                () => service.createManualRestorePoint({
                     folders: [...selectedFolders],
                     sourceTheme: sourceTheme || 'default'
-                });
-            } catch (_error) {
-                snapshot = null;
-            }
+                })
+            );
             return {
                 detectedBar: snapshot?.defaultThemeBar || 'none',
                 snapshot: snapshot || null,
@@ -64,61 +66,24 @@ export class UpdateHyprlandCheckpointUseCase {
             };
         }
 
-        return service?.refreshRestorePoint
-            ? await (async () => {
-                let refreshed = null;
-                try {
-                    refreshed = await service.refreshRestorePoint.call(service, {
-                        folders: [...selectedFolders],
-                        theme: sourceTheme,
-                        sourceTheme,
-                        mergeWithConfiguredFolders: false
-                    });
-                } catch (_error) {
-                    refreshed = null;
-                }
-                return {
-                    detectedBar: refreshed?.detectedBar || 'none',
-                    snapshot: refreshed?.snapshot || null,
-                    lastUpdate: refreshed?.lastUpdate || this.currentTimestamp()
-                };
-            })()
-            : (async () => {
-                this.updateBackupScript?.([...selectedFolders]);
+        if (service?.refreshRestorePoint) {
+            const refreshed = await tryOrNullAsync(
+                'UpdateHyprlandCheckpointUseCase.refreshRestorePoint',
+                () => service.refreshRestorePoint.call(service, {
+                    folders: [...selectedFolders],
+                    theme: sourceTheme,
+                    sourceTheme,
+                    mergeWithConfiguredFolders: false
+                })
+            );
+            return {
+                detectedBar: refreshed?.detectedBar || 'none',
+                snapshot: refreshed?.snapshot || null,
+                lastUpdate: refreshed?.lastUpdate || this.currentTimestamp()
+            };
+        }
 
-                const defaultThemeRoot = `${this.homeDir}/.config/themes/default`;
-                await Promise.all([
-                    removePath(this.exec.bind(this), `${defaultThemeRoot}/configs`),
-                    removePath(this.exec.bind(this), `${defaultThemeRoot}/default_wallpapers`)
-                ]);
-
-                const defaultWallpapersDir = `${defaultThemeRoot}/default_wallpapers`;
-                await this.runEmbeddedFindAndBackupHyprland?.(defaultWallpapersDir);
-
-                const themeToBackup = await this.getThemeName(theme);
-                const themeDir = `${this.homeDir}/.config/themes/${themeToBackup}`;
-
-                themeToBackup !== 'default' && await this.copyHyprlandResources(themeDir, defaultThemeRoot);
-
-                const hasConf = await this.existsFile(`${themeDir}/hyprland.conf`);
-                const hasDir = await this.existsDir(`${themeDir}/hyprland`);
-
-                await removeMissingEntries(this.exec.bind(this), [
-                    {
-                        present: hasConf,
-                        path: `${defaultThemeRoot}/hyprland.conf`,
-                        check: this.existsFile.bind(this)
-                    },
-                    {
-                        present: hasDir,
-                        path: `${defaultThemeRoot}/hyprland`,
-                        check: this.existsDir.bind(this)
-                    }
-                ]);
-
-                const detectedBar = await this.detectRunningBar();
-                return {detectedBar, lastUpdate: this.currentTimestamp()};
-            })();
+        return this.executeEmbeddedBackup([...selectedFolders], theme);
     }
 
     async getThemeName(theme) {
@@ -152,6 +117,69 @@ export class UpdateHyprlandCheckpointUseCase {
 
     async existsDir(path) {
         return existsDir(this.exec.bind(this), path);
+    }
+
+    async executeEmbeddedBackup(selectedFolders, theme) {
+        this.updateBackupScript?.(selectedFolders);
+
+        const defaultThemeRoot = `${this.homeDir}/.config/themes/default`;
+        await Promise.all([
+            removePath(this.exec.bind(this), `${defaultThemeRoot}/configs`),
+            removePath(this.exec.bind(this), `${defaultThemeRoot}/default_wallpapers`)
+        ]);
+
+        await this.runEmbeddedFindAndBackupHyprland?.(`${defaultThemeRoot}/default_wallpapers`);
+
+        const themeToBackup = await this.getThemeName(theme);
+        const themeDir = `${this.homeDir}/.config/themes/${themeToBackup}`;
+        if (themeToBackup !== 'default') {
+            await this.copyHyprlandResources(themeDir, defaultThemeRoot);
+        }
+
+        await this.removeMissingHyprlandEntries(themeDir, defaultThemeRoot);
+        this.normalizeTheme(defaultThemeRoot);
+
+        const detectedBar = await this.detectRunningBar();
+        return {detectedBar, lastUpdate: this.currentTimestamp()};
+    }
+
+    async removeMissingHyprlandEntries(themeDir, defaultThemeRoot) {
+        const hasConf = await this.existsFile(`${themeDir}/hyprland.conf`);
+        const hasDir = await this.existsDir(`${themeDir}/hyprland`);
+
+        await removeMissingEntries(this.exec.bind(this), [
+            {
+                present: hasConf,
+                path: `${defaultThemeRoot}/hyprland.conf`,
+                check: this.existsFile.bind(this)
+            },
+            {
+                present: hasDir,
+                path: `${defaultThemeRoot}/hyprland`,
+                check: this.existsDir.bind(this)
+            }
+        ]);
+    }
+
+    normalizeTheme(themePath) {
+        if (!themePath || !this.themeHasHyprlandConfig(themePath)) {
+            return;
+        }
+
+        const normalized = tryRun(
+            'UpdateHyprlandCheckpointUseCase.normalizeTheme',
+            () => this.hyprlandConfigGenerator?.generateThemeForCurrentVersion?.(themePath)
+        );
+        if (!normalized) {
+            this.logger?.warn?.(
+                `[UpdateHyprlandCheckpointUseCase] Failed to normalize ${themePath}`
+            );
+        }
+    }
+
+    themeHasHyprlandConfig(themePath) {
+        return Gio.File.new_for_path(`${themePath}/hyprland`).query_exists(null)
+            || Gio.File.new_for_path(`${themePath}/hyprland.conf`).query_exists(null);
     }
 
     async detectRunningBar() {

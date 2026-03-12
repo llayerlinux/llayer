@@ -1,7 +1,8 @@
 import GLib from 'gi://GLib';
 import { decodeBytes } from '../utils/Utils.js';
+import { resolveProjectRootFromModule } from '../utils/ModulePathUtils.js';
 
-const TEMPLATE_DIR = GLib.build_filenamev([GLib.get_current_dir(), 'assets', 'templates']);
+const TEMPLATE_DIR = GLib.build_filenamev([resolveProjectRootFromModule(import.meta.url), 'assets', 'templates']);
 
 function createTemplatePath(fileName) {
     return GLib.build_filenamev([TEMPLATE_DIR, fileName]);
@@ -36,6 +37,7 @@ const ScriptTemplateStoreCache = {
 };
 
 export {
+    TEMPLATE_DIR,
     createTemplatePath,
     loadTemplate,
     applyTemplate,

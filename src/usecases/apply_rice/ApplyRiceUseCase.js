@@ -26,7 +26,7 @@ export class ApplyTheme {
         this.approvedScripts = new Map();
         this.bindEventHandlers();
 
-        this.t = this.getTranslator();
+        this.t = null;
     }
 
     bindEventHandlers() {
