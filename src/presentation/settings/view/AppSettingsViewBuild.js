@@ -52,6 +52,7 @@ class AppSettingsViewBuild {
             ? this.container.get('themeSelectorView')
             : null;
         const parent = selectorView?.window || this.mainWindow || null;
+        const cssProvider = selectorView?.cssProvider || null;
         parent && dialog.set_transient_for?.(parent);
 
         WINDOW_HINT_METHODS.forEach(method => dialog[method]?.(true));
@@ -59,11 +60,17 @@ class AppSettingsViewBuild {
         dialog.set_size_request(520, 580);
         dialog.set_position(Gtk.WindowPosition.CENTER_ALWAYS);
         dialog.get_style_context().add_class('lastlayer-settings-dialog');
+        dialog.get_style_context().add_class('config-dialog');
+        cssProvider && dialog.get_style_context().add_provider(
+            cssProvider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
 
         const contentArea = dialog.get_content_area();
         contentArea.set_spacing(0);
         contentArea.set_margin_top(0);
         contentArea.set_margin_bottom(0);
+        contentArea.get_style_context().add_class('lastlayer-settings-content');
 
         dialog.get_action_area && (() => {
             const actionArea = dialog.get_action_area();
@@ -72,12 +79,30 @@ class AppSettingsViewBuild {
             actionArea.set_margin_left(16);
             actionArea.set_margin_right(16);
             actionArea.set_spacing(8);
+            actionArea.get_style_context().add_class('lastlayer-settings-actions');
         })();
 
         const notebook = new Gtk.Notebook();
         notebook.set_show_border(false);
         notebook.set_show_tabs(true);
         notebook.set_tab_pos(Gtk.PositionType.TOP);
+        notebook.get_style_context().add_class('tweaks-notebook');
+        notebook.get_style_context().add_class('lastlayer-settings-notebook');
+
+        const styleTabPage = (widget, variant = 'basic') => {
+            const context = widget?.get_style_context?.();
+            if (!context) {
+                return widget;
+            }
+
+            context.add_class('lastlayer-settings-page');
+            context.add_class(
+                variant === 'advanced'
+                    ? 'tweaks-advanced-container'
+                    : 'tweaks-basic-container'
+            );
+            return widget;
+        };
 
         const deps = {
             t,
@@ -89,6 +114,9 @@ class AppSettingsViewBuild {
             styleSeparator: (sep) => sep,
             getSystemGtkThemes: () => this.getSystemGtkThemes()
         };
+
+        const supporterProvider = this.container?.get?.('supporterProvider');
+        const hasSupporter = supporterProvider?.isActive?.();
 
         this.ThemeAppsSection && (this.sections.themeApps = new this.ThemeAppsSection({
             t,
@@ -123,7 +151,8 @@ class AppSettingsViewBuild {
             ...deps,
             getSystemGtkThemes: () => this.getSystemGtkThemes()
         }, 'Settings');
-        const {box: settingsBox, tabLabel: settingsTabLabel} = settingsTab;
+        const {box: rawSettingsBox, tabLabel: settingsTabLabel} = settingsTab;
+        const settingsBox = styleTabPage(rawSettingsBox, 'basic');
 
         const advancedTab = this.buildTab(this.AdvancedTab, {
             ...deps,
@@ -132,35 +161,73 @@ class AppSettingsViewBuild {
             writeSettingsFile: () => this.controller?.writeSettingsFile?.(),
             notify: (msg) => this.controller?.notifier?.info?.(msg)
         }, 'Advanced');
-        const {box: advancedBox, tabLabel: advancedTabLabel} = advancedTab;
+        const {box: rawAdvancedBox, tabLabel: advancedTabLabel} = advancedTab;
+        const advancedBox = styleTabPage(rawAdvancedBox, 'advanced');
         this.tabs.advanced = advancedTab.instance;
 
-        const hyprlandTab = this.buildTab(this.HyprlandTab, {
+        const parameterService = this.container?.has?.('hyprlandParameterService')
+            ? this.container.get('hyprlandParameterService') : null;
+        const settingsManager = this.container?.has?.('settingsManager')
+            ? this.container.get('settingsManager') : null;
+        const overrideTabClass = hasSupporter && this.OverrideTab ? this.OverrideTab : this.HyprlandTab;
+        const overrideTab = this.buildTab(overrideTabClass, {
             ...deps,
-            parameterService: this.container?.has?.('hyprlandParameterService')
-                ? this.container.get('hyprlandParameterService') : null,
-            hotkeyService: this.container?.has?.('hotkeyService')
-                ? this.container.get('hotkeyService') : null,
+            parameterService,
             themeRepository: this.themeRepository,
-            settingsManager: this.container?.has?.('settingsManager')
-                ? this.container.get('settingsManager') : null,
-            logger: this.container?.has?.('logger')
-                ? this.container.get('logger') : null,
-            eventBus: this.container?.has?.('eventBus')
-                ? this.container.get('eventBus') : null,
+            settingsManager,
             parentWindow: dialog,
             onOverridesChanged: () => {
                 this.controller?.writeSettingsFile?.();
             }
-        }, 'Hyprland');
-        const {box: hyprlandBox, tabLabel: hyprlandTabLabel} = hyprlandTab;
-        this.tabs.hyprland = hyprlandTab.instance;
+        }, 'Override');
+        const {box: rawOverrideBox, tabLabel: overrideTabLabel} = overrideTab;
+        const overrideBox = styleTabPage(rawOverrideBox, 'advanced');
+        this.tabs.override = overrideTab.instance;
+
+        const startPointTab = this.buildTab(this.StartPointTab, {
+            ...deps
+        }, 'StartPoint');
+        const {box: rawStartPointBox, tabLabel: startPointTabLabel} = startPointTab;
+        const startPointBox = styleTabPage(rawStartPointBox, 'basic');
+
+        let importTab = null, importBox = null, importTabLabel = null;
+        if (hasSupporter && this.ImportTab) {
+            importTab = this.buildTab(this.ImportTab, {
+                ...deps,
+                container: this.container
+            }, 'Import');
+            importBox = styleTabPage(importTab.box, 'advanced');
+            importTabLabel = importTab.tabLabel;
+        }
 
         const securityTab = this.buildSecurityTab(t, settings);
-        const {box: securityBox, tabLabel: securityTabLabel} = securityTab;
+        const {box: rawSecurityBox, tabLabel: securityTabLabel} = securityTab;
+        const securityBox = styleTabPage(rawSecurityBox, 'advanced');
+
+        let systemTab = null, systemBox = null, systemTabLabel = null;
+        if (hasSupporter && this.SystemTab) {
+            systemTab = this.buildTab(this.SystemTab, {
+                ...deps
+            }, 'System');
+            systemBox = styleTabPage(systemTab.box, 'advanced');
+            systemTabLabel = systemTab.tabLabel;
+        }
+
+        let debugTab = null, debugBox = null, debugTabLabel = null;
+        if (hasSupporter && this.DebugTab) {
+            debugTab = this.buildTab(this.DebugTab, {
+                ...deps,
+                settingsManager,
+                eventBus: this.bus,
+                container: this.container
+            }, 'Debug');
+            debugBox = styleTabPage(debugTab.box, 'advanced');
+            debugTabLabel = debugTab.tabLabel;
+        }
 
         const helpTab = this.buildTab(this.HelpTab, {t}, 'Help');
-        const {box: helpBox, tabLabel: helpTabLabel} = helpTab;
+        const {box: rawHelpBox, tabLabel: helpTabLabel} = helpTab;
+        const helpBox = styleTabPage(rawHelpBox, 'basic');
 
         const currentDir = this.container.has('currentDir') ? this.container.get('currentDir') : GLib.get_current_dir();
         const settingsState = this.store?.snapshot?.settings ?? {};
@@ -173,13 +240,18 @@ class AppSettingsViewBuild {
             assetsPath: `${currentDir}/assets`,
             thanksUrl: settingsState.thanksUrl
         }, 'About');
-        const {box: aboutBox, tabLabel: aboutTabLabel} = aboutTab;
+        const {box: rawAboutBox, tabLabel: aboutTabLabel} = aboutTab;
+        const aboutBox = styleTabPage(rawAboutBox, 'basic');
         this.tabs.about = aboutTab.instance;
 
         notebook.append_page(settingsBox, settingsTabLabel);
         notebook.append_page(advancedBox, advancedTabLabel);
-        notebook.append_page(hyprlandBox, hyprlandTabLabel);
+        notebook.append_page(overrideBox, overrideTabLabel);
+        notebook.append_page(startPointBox, startPointTabLabel);
+        hasSupporter && importBox && notebook.append_page(importBox, importTabLabel);
         notebook.append_page(securityBox, securityTabLabel);
+        hasSupporter && systemBox && notebook.append_page(systemBox, systemTabLabel);
+        hasSupporter && debugBox && notebook.append_page(debugBox, debugTabLabel);
         notebook.append_page(helpBox, helpTabLabel);
         notebook.append_page(aboutBox, aboutTabLabel);
 

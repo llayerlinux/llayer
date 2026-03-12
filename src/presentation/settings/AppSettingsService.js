@@ -3,6 +3,8 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=3.0';
 import Gdk from 'gi://Gdk?version=3.0';
 import { CSS_FILES, getScssFilesForTheme } from './StyleFiles.js';
+import { HyprlandConfigGenerator } from '../../infrastructure/hyprland/HyprlandConfigGenerator.js';
+import { buildLastLayerOpacityRule } from '../../infrastructure/hyprland/HyprlandRuleSyntaxTransformer.js';
 import { tryOrDefault, tryRun } from '../../infrastructure/utils/ErrorUtils.js';
 
 export class AppSettingsService {
@@ -10,6 +12,7 @@ export class AppSettingsService {
         this.logger = options.logger || null;
         this.currentDir = options.currentDir || GLib.get_current_dir();
         this.homeDir = options.homeDir || GLib.get_home_dir();
+        this.hyprlandConfigGenerator = options.hyprlandConfigGenerator || new HyprlandConfigGenerator({ logger: this.logger });
     }
 
     log(level, message, data = null) {
@@ -93,7 +96,8 @@ export class AppSettingsService {
         !okRules && ruleFile.query_exists(null) && this.log?.('warn', `Could not read ${rulePath}`);
 
         let lines = rulesText.split(/\r?\n/).filter(Boolean);
-        let rule = 'windowrulev2 = opacity 0.6,class:^(lastlayer)$';
+        const hyprlandVersion = this.hyprlandConfigGenerator.detectHyprlandVersion();
+        let rule = buildLastLayerOpacityRule(hyprlandVersion, '0.6');
         let idx = lines.findIndex((line) => /opacity\s+0\.6/.test(line) && /lastlayer/.test(line));
 
         enable

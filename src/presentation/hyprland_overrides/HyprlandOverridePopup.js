@@ -11,8 +11,10 @@ export class HyprlandOverridePopup {
         this.hotkeyService = options.hotkeyService || null;
         this.themeRepository = options.themeRepository || null;
         this.settingsManager = options.settingsManager || null;
+        this.hyprlandConfigGenerator = options.hyprlandConfigGenerator || null;
         this.eventBus = options.eventBus || null;
         this.logger = options.logger || null;
+        this.cssProvider = options.cssProvider || null;
 
         this.popup = null;
         this.currentTheme = null;

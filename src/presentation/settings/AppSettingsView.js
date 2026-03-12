@@ -6,7 +6,7 @@ import {applyAppSettingsViewBuild} from './view/AppSettingsViewBuild.js';
 import {applyAppSettingsViewCore} from './view/AppSettingsViewCore.js';
 import {applyAppSettingsViewLifecycle} from './view/AppSettingsViewLifecycle.js';
 import {applyAppSettingsViewSecurity} from './view/AppSettingsViewSecurity.js';
-import {CORE_DEP_KEYS, EventBindingsStub, SECTION_CLASS_KEYS, TAB_CLASS_KEYS} from './view/AppSettingsViewConstants.js';
+import {CORE_DEP_KEYS, EventBindingsStub, SUPPORTER_TAB_KEYS, SECTION_CLASS_KEYS, TAB_CLASS_KEYS} from './view/AppSettingsViewConstants.js';
 
 export class AppSettingsView {
     constructor(container, controller) {
@@ -47,6 +47,14 @@ export class AppSettingsView {
 
         [this.SettingsTab, this.AdvancedTab, this.HyprlandTab, this.StartPointTab, this.HelpTab, this.AboutTab] =
             TAB_CLASS_KEYS.map(k => get(k));
+
+        const supporterProvider = container?.get?.('supporterProvider');
+        if (supporterProvider?.isActive()) {
+            this.OverrideTab = container.has('OverrideTab') ? container.get('OverrideTab') : null;
+            this.ImportTab = container.has('ImportTab') ? container.get('ImportTab') : null;
+            this.SystemTab = container.has('SystemTab') ? container.get('SystemTab') : null;
+            this.DebugTab = container.has('DebugTab') ? container.get('DebugTab') : null;
+        }
 
         [this.ThemeAppsSection, this.SecuritySection] = SECTION_CLASS_KEYS.map(k => get(k));
         [this.mainWindow, this.BarRegistry, this.makeRoundedPixbuf, this.loadStartupData, this.playSound] =

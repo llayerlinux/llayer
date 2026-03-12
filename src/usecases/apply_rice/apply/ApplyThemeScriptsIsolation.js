@@ -314,8 +314,13 @@ class ApplyThemeScriptsIsolation {
         });
         if (!preamble) return null;
 
-        let tmpPath = `/tmp/lastlayer_patched_postinstall_script_${Date.now()}.sh`;
-        GLib.file_set_contents(tmpPath, `${preamble}${new TextDecoder('utf-8').decode(content).replace(PATTERN_SCRIPT_SHEBANG, '')}`);
+        let scriptDir = GLib.path_get_dirname(scriptPath);
+        let tmpPath = GLib.build_filenamev([scriptDir, `.lastlayer_patched_postinstall_script_${Date.now()}.sh`]);
+        let normalizedContent = new TextDecoder('utf-8').decode(content)
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(PATTERN_SCRIPT_SHEBANG, '');
+        GLib.file_set_contents(tmpPath, `${preamble}${normalizedContent}`);
         GLib.spawn_sync(null, [Commands.CHMOD, '+x', tmpPath], null, GLib.SpawnFlags.SEARCH_PATH, null);
 
         return tmpPath;

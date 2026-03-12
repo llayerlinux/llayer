@@ -86,7 +86,7 @@ class ThemeContextMenuViewPopupPublicated {
             margin: 6
         });
 
-        const currentDir = GLib.get_current_dir();
+        const currentDir = this.currentDir || this.controller?.container?.get?.('currentDir') || GLib.get_current_dir();
         const logoPath = `${currentDir}/assets/reddit-logo.png`;
         const pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(logoPath, 22, 22, true);
         const redditIcon = new Gtk.Image();

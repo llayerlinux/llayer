@@ -18,6 +18,7 @@ export class BottomBar {
         });
         this.onOpenCurrentState = deps.onOpenCurrentState || (() => {
         });
+        this.onSupporterToggle = deps.onSupporterToggle || null;
         this.registerTranslation = deps.registerTranslation || (() => {
         });
         this.showNotification = deps.showNotification || (() => {
@@ -42,7 +43,7 @@ export class BottomBar {
         button.get_style_context().add_class('my-theme-selector-icon-button');
         extraClass && button.get_style_context().add_class(extraClass);
         button.set_tooltip_text(this.t(tooltipKey));
-        button.connect('clicked', onClick);
+        if (onClick) button.connect('clicked', onClick);
         this.registerTranslation(button, tooltipKey, (w, txt) => w.set_tooltip_text(txt));
         addPointerCursor(button);
         return button;
@@ -99,9 +100,25 @@ export class BottomBar {
         this.bottomSettingsButton = this.createIconButton(
             'preferences-system-symbolic',
             'SETTINGS_ICON_TOOLTIP',
-            () => this.onOpenSettings(),
+            null,
             'my-theme-selector-bottom-icon-button'
         );
+        this._longPressTriggered = false;
+        if (this.onSupporterToggle) {
+            const longPress = Gtk.GestureLongPress.new(this.bottomSettingsButton);
+            longPress.connect('pressed', () => {
+                this._longPressTriggered = true;
+                this.onSupporterToggle();
+            });
+            this._settingsLongPress = longPress;
+        }
+        this.bottomSettingsButton.connect('clicked', () => {
+            if (this._longPressTriggered) {
+                this._longPressTriggered = false;
+                return;
+            }
+            this.onOpenSettings();
+        });
 
         this.refreshButton = this.createIconButton(
             'view-refresh-symbolic',

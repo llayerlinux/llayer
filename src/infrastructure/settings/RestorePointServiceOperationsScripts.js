@@ -103,7 +103,8 @@ class RestorePointServiceOperationsScripts {
             'START_SCRIPTS_DIR="$DEFAULT_THEME_DIR/start-scripts"',
             'notifySafe',
             'rm -rf "$DEFAULT_THEME_DIR"',
-            'THEME_CONFIG_DIR'
+            'THEME_CONFIG_DIR',
+            'normalizeDefaultHyprlandTheme'
         ].every(marker => text.includes(marker));
     }
 

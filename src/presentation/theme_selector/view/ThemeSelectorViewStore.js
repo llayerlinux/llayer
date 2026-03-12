@@ -55,7 +55,8 @@ class ThemeSelectorViewStore {
             network: () => this.renderNetworkTab(),
             settings: () => this.renderSettingsTab(),
             'more-sections': () => this.renderMoreSectionsTab(),
-            about: () => this.renderAboutTab()
+            about: () => this.renderAboutTab(),
+            'ai-dynamic': () => this.renderAIDynamicTab(),
         };
     }
 
@@ -155,6 +156,10 @@ class ThemeSelectorViewStore {
 
     renderAboutTab() {
         this.tabRenderers?.renderAbout?.();
+    }
+
+    renderAIDynamicTab() {
+        this.tabRenderers?.renderAIDynamic?.();
     }
 
     subscribeToStore() {

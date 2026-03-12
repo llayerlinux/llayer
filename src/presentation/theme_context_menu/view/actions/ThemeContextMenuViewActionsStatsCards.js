@@ -103,7 +103,8 @@ class ThemeContextMenuViewActionsStatsCards {
     }
 
     loadCustomIcon(iconName, size = 18) {
-        const relativeIconPath = `${GLib.get_current_dir()}/assets/icons/${iconName}.svg`;
+        const currentDir = this.currentDir || this.controller?.container?.get?.('currentDir') || GLib.get_current_dir();
+        const relativeIconPath = `${currentDir}/assets/icons/${iconName}.svg`;
 
         return Gio.File.new_for_path(relativeIconPath).query_exists(null)
             ? Gtk.Image.new_from_pixbuf(

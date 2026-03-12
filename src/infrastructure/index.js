@@ -41,6 +41,7 @@ export { ScriptBuilder } from './scripts/ScriptBuilder.js';
 
 export { HyprlandParameterService } from './hyprland/HyprlandParameterService.js';
 export { HotkeyService } from './hyprland/HotkeyService.js';
+export { HyprlandConfigGenerator } from './hyprland/HyprlandConfigGenerator.js';
 
 export { DistributionService } from './system/DistributionService.js';
 export { DesktopShellService } from './system/DesktopShellService.js';

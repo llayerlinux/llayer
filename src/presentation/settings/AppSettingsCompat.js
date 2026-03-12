@@ -66,6 +66,8 @@ export class AppSettingsCompat {
             intermediateDefaultTransition: false,
             theme: null,
             restore_point_last_update: null,
+            hyprlandOverrides: {},
+            hotkeyOverrides: {},
             alt_bar: 'none',
             alt_timeout: 2.0,
             daemon_start_timeout: 0.3,
@@ -82,6 +84,7 @@ export class AppSettingsCompat {
             default_bar_manual: false,
             skip_install_theme_apps: [],
             showApplyTime: false,
+            showInstallTime: false,
             sendPerformanceStats: false,
             testDataMode: false,
             serverAddress: DEFAULT_SERVER_ADDRESS,
@@ -108,7 +111,68 @@ export class AppSettingsCompat {
             enableLogs: false,
             customBars: [],
             backupFolders: [],
-            excludedBackupFolders: []
+            excludedBackupFolders: [],
+            previewSource: 'auto',
+            importLogDisabled: false,
+            importLogAutoHide: true,
+            autoApplyAfterImport: false,
+            autoDetectSystemParams: true,
+            applyHyprlandOverridesRealtime: false,
+            autoConvertLegacyParams: true,
+            legacySettings: {
+                autoMigrate: true,
+                globalEnabledLegacy: [],
+                globalRevertedConversions: [],
+                globalEnabledFuture: [],
+                globalRevertedFutureConversions: []
+            },
+            xterm_dock_to_window: true,
+            xterm_width: 80,
+            xterm_height: 24,
+            xterm_pixel_width: 650,
+            xterm_pixel_height: 450,
+            xterm_bg: '#2e3440',
+            xterm_fg: '#d8dee9',
+            xterm_font: 'Monospace',
+            xterm_font_size: 11,
+            xterm_color_preset: null,
+            xterm_from_rice: false,
+            hyprpanel_adaptive_isolation: false,
+            hyprpanel_adaptive_scale_enabled: false,
+            hyprpanel_adaptive_scale_value: 68,
+            quickshell_adaptive_isolation: true,
+            swayToHyprlandConvert: true,
+            swayConvertFixFonts: true,
+            swayConvertFixActive: true,
+            hideWifiNameOnImport: false,
+            executeImageInstructions: true,
+            autoGenerateTagsOnImport: false,
+            autoGenerateTagsProviderId: null,
+            lastAddLocalThemeDir: '~/.config',
+            flyParallelApply: true,
+            flySkipHeavyPhases: false,
+            flyPreloadWallpaper: true,
+            flyWarmBarProcess: false,
+            flyPregenScript: false,
+            flySkipInstallScript: false,
+            flyEarlyOverrides: true,
+            flySeamlessMode: false,
+            flyDisableExternalNotifications: false,
+            gitUrlMode: 'https',
+            timeouts: {
+                flyDebounceDelay: 150,
+                regularDebounceDelay: 500,
+                stabilityCheckInterval: 150,
+                stabilityMaxWait: 30000,
+                retryDelayBase: 2000,
+                flyApplyDelay: 500,
+                regularApplyDelay: 1500,
+                flyRetryDelay: 300,
+                regularRetryDelay: 1000,
+                commandListenerInterval: 100,
+                rescanAfterImportDelay: 1000,
+                startupScanDelay: 200
+            }
         };
 
         const snapshot = Object.fromEntries(
@@ -121,6 +185,14 @@ export class AppSettingsCompat {
         snapshot.serverAddress = readSetting(['serverAddress', 'serverUrl'], defaults.serverAddress);
         snapshot.localThemesPath = readSetting('localThemesPath', defaults.localThemesPath);
         snapshot.gtkTheme = readSetting('gtkTheme', defaults.gtkTheme);
+
+        snapshot.timeouts = snapshot.timeouts && typeof snapshot.timeouts === 'object' && !Array.isArray(snapshot.timeouts)
+            ? {...defaults.timeouts, ...snapshot.timeouts}
+            : {...defaults.timeouts};
+
+        snapshot.legacySettings = snapshot.legacySettings && typeof snapshot.legacySettings === 'object' && !Array.isArray(snapshot.legacySettings)
+            ? {...defaults.legacySettings, ...snapshot.legacySettings}
+            : {...defaults.legacySettings};
 
         return snapshot;
     }

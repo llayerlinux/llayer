@@ -6,16 +6,6 @@ const HYPRLAND_MIGRATIONS = {
     },
     'gestures:workspace_swipe_fingers': { version: '0.51.0', action: 'removed' },
     'gestures:workspace_swipe_min_fingers': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_distance': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_touch': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_invert': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_min_speed_to_force': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_cancel_ratio': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_create_new': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_direction_lock': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_direction_lock_threshold': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_forever': { version: '0.51.0', action: 'removed' },
-    'gestures:workspace_swipe_use_r': { version: '0.51.0', action: 'removed' },
 
     'animations:first_launch_animation': {
         version: '0.51.0',
@@ -193,10 +183,10 @@ const HYPRLAND_MIGRATIONS = {
         newPath: 'master:center_master_fallback'
     },
 
-    'misc:allow_session_lock_restore': {
-        version: '0.50.0',
+    'misc:new_window_takes_over_fullscreen': {
+        version: '0.53.0',
         action: 'renamed',
-        newPath: 'misc:lockdead_screen_delay'
+        newPath: 'misc:on_focus_under_fullscreen'
     },
     'misc:disable_hyprland_qtutils_check': {
         version: '0.52.0',
@@ -364,10 +354,10 @@ const HYPRLAND_FUTURE_PARAMS = {
         transform: 'invert'
     },
 
-    'misc:lockdead_screen_delay': {
-        minVersion: '0.50.0',
+    'misc:on_focus_under_fullscreen': {
+        minVersion: '0.53.0',
         action: 'rename',
-        oldPath: 'misc:allow_session_lock_restore'
+        oldPath: 'misc:new_window_takes_over_fullscreen'
     },
     'misc:disable_hyprland_guiutils_check': {
         minVersion: '0.52.0',

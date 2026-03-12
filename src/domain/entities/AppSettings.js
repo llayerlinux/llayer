@@ -8,7 +8,7 @@ import { DEFAULT_SERVER_ADDRESS } from '../../infrastructure/constants/AppUrls.j
 export class AppSettings {
 
     static getDefaultThemesPath() {
-        return `${GLib.get_home_dir()}/.config/themes`;
+        return typeof GLib !== 'undefined' && GLib?.get_home_dir ? `${GLib.get_home_dir()}/.config/themes` : '~/.config/themes';
     }
 
     static assign(target, ...values) {

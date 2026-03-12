@@ -2,6 +2,7 @@ mkdir -p "$__LL_SUDO_DIR/bin"
 chmod 700 "$__LL_SUDO_DIR"
 
 cat > "$__LL_SUDO_DIR/root_runner.sh" << 'LLRUNNEREOF'
+#!/usr/bin/env bash
 set -u
 REQ="$1"; RESP="$2"; READY="$3"
 exec 3<>"$REQ"; exec 4<>"$RESP"
@@ -19,6 +20,7 @@ LLRUNNEREOF
 chmod 700 "$__LL_SUDO_DIR/root_runner.sh"
 
 cat > "$__LL_SUDO_DIR/bin/sudo" << 'LLSUDOEOF'
+#!/usr/bin/env bash
 __LL_SUDO_DIR="${__LL_SUDO_DIR:-/tmp/lastlayer_sudo_fallback}"
 __LL_SUDO_REQ="$__LL_SUDO_DIR/req.fifo"
 __LL_SUDO_RESP="$__LL_SUDO_DIR/resp.fifo"
@@ -33,6 +35,16 @@ done
 [ $# -eq 0 ] && { [ -n "$real_sudo" ] && exec "$real_sudo"; exit 1; }
 case "$1" in -*) [ -n "$real_sudo" ] && exec "$real_sudo" "$@"; exit 1 ;; esac
 [ "$(id -u)" = "0" ] && { "$@"; exit $?; }
+
+if [ -n "$real_sudo" ] && "$real_sudo" -n true >/dev/null 2>&1; then
+  exec "$real_sudo" -n "$@"
+fi
+
+if [ -n "$real_sudo" ] && [ -n "${LASTLAYER_SUDO_PASSWORD:-}" ]; then
+  if "$real_sudo" -S -p '' -v <<<"$LASTLAYER_SUDO_PASSWORD" >/dev/null 2>&1; then
+    exec "$real_sudo" -S -p '' "$@" <<<"$LASTLAYER_SUDO_PASSWORD"
+  fi
+fi
 
 if [ -f "$__LL_SUDO_READY" ] && [ -f "$__LL_SUDO_PIDFILE" ]; then
   pid="$(cat "$__LL_SUDO_PIDFILE" 2>/dev/null)"
@@ -91,4 +103,3 @@ llStartPkexec() {
 
 export __LL_SUDO_DIR __LL_SUDO_REQ __LL_SUDO_RESP __LL_SUDO_READY __LL_SUDO_PIDFILE
 export PATH="$__LL_SUDO_DIR/bin:$PATH"
-

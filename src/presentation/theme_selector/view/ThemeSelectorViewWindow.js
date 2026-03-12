@@ -83,14 +83,46 @@ class ThemeSelectorViewWindow {
         this.headerBox = this.createHeaderBox();
         this.downloadsContainer = this.createDownloadsContainer();
         this.networkProgressArea = this.createNetworkProgressArea();
+        this.conversionBanner = this.createConversionBanner();
         this.mainContentBox = this.createMainContentBox();
         this.bottomBar = this.createBottomBar();
+        this.logPanel = this.createLogPanel();
         this.contentBox = Box({
             vertical: true, className: 'my-theme-selector-popup-content', margin_bottom: 0, margin_top: 0, spacing: 0,
-            children: [this.headerBox, this.networkProgressArea, this.mainContentBox, this.bottomBar, this.downloadsContainer]
+            children: [
+                this.headerBox,
+                this.networkProgressArea,
+                this.mainContentBox,
+                this.bottomBar,
+                this.logPanel,
+                this.conversionBanner,
+                this.downloadsContainer
+            ]
         });
         this.translateWidgetTexts(this.contentBox);
+
+        this.supporterRibbon = this._createSupporterRibbon();
+        if (this.supporterRibbon) {
+            const overlay = new Gtk.Overlay();
+            overlay.add(this.contentBox);
+            overlay.add_overlay(this.supporterRibbon);
+            overlay.set_overlay_pass_through(this.supporterRibbon, true);
+            return overlay;
+        }
         return this.contentBox;
+    }
+
+    _createSupporterRibbon() {
+        const sp = this.container?.get?.('supporterProvider');
+        if (!sp?.available) return null;
+        const ribbon = new Gtk.Label({ label: 'S\n+' });
+        ribbon.get_style_context().add_class('supporter-ribbon');
+        ribbon.set_halign(Gtk.Align.END);
+        ribbon.set_valign(Gtk.Align.CENTER);
+        ribbon.set_margin_end(2);
+        ribbon.set_no_show_all(!sp.isActive());
+        ribbon.set_visible(sp.isActive());
+        return ribbon;
     }
 
     createHeaderBox() {
@@ -138,6 +170,7 @@ class ThemeSelectorViewWindow {
                 onClose: () => this.hide(), onAddTheme: () => this.openAddThemeDialog(),
                 onUploadTheme: () => this.isUploadInProgress ? this.showNotification(this.translate('UPLOAD_IN_PROGRESS'), 'info') : this.openUploadThemeDialog(),
                 onOpenSettings: () => this.openSettingsDialog(),
+                onSupporterToggle: () => this.onSupporterToggle(),
                 onRefresh: () => {
                     const t = this.controller?.store?.get('activeTab');
                     this.controller?.store?.setLoadingState?.(t, 'loading');
@@ -176,6 +209,36 @@ class ThemeSelectorViewWindow {
                 return GLib.SOURCE_REMOVE;
             });
             return bar;
+        });
+    }
+
+    createLogPanel() {
+        const logPanelClass = this.container?.get?.('supporterProvider')?.get?.('LogPanel');
+        return buildOptionalComponent(logPanelClass, (LogPanel) => {
+            this.logPanelComponent = new LogPanel({
+                t: (k) => this.translate(k),
+                createIcon: (n, s) => this.createIcon(n, s),
+                eventBus: this.getEventBus(),
+                getSettings: () => {
+                    const manager = this.tryGetService?.('settingsManager');
+                    return manager?.getAll?.() || {};
+                },
+                onAdaptWindowSize: () => this.adaptWindowSize?.(),
+                Box
+            });
+            return this.logPanelComponent.build();
+        });
+    }
+
+    createConversionBanner() {
+        const conversionBannerClass = this.container?.get?.('supporterProvider')?.get?.('ConversionBanner');
+        return buildOptionalComponent(conversionBannerClass, (ConversionBanner) => {
+            this.conversionBannerComponent = new ConversionBanner({
+                t: (k) => this.translate(k),
+                eventBus: this.getEventBus(),
+                Box
+            });
+            return this.conversionBannerComponent.build();
         });
     }
 
@@ -234,6 +297,19 @@ class ThemeSelectorViewWindow {
         MoreSectionsControllerModule?.MoreSectionsController && moreSectionsController.setMainController?.(this.controller);
         this.moreSectionsView = new MoreSectionsView(moreSectionsController, this.logger);
         moreSectionsController?.setView?.(this.moreSectionsView);
+        const supporterProvider = this.container?.get?.('supporterProvider');
+        if (supporterProvider?.isActive()) {
+            const modules = this.container?.get?.('modules');
+            const AIDynCtrl = modules?.AIDynamicEnvironmentController;
+            const AIDynView = modules?.AIDynamicEnvironmentView;
+            if (AIDynCtrl && AIDynView) {
+                this.aiDynamicController = new AIDynCtrl(this.container, this.controller.store, this.logger);
+                this.aiDynamicController.setMainController?.(this.controller);
+                this.aiDynamicController.setMoreSectionsController?.(moreSectionsController);
+                this.aiDynamicView = new AIDynView(this.aiDynamicController, this.logger);
+                this.aiDynamicController.setView?.(this.aiDynamicView);
+            }
+        }
         this.themeContextMenuController = new ThemeContextMenuController(this.container, this.logger);
         this.themeContextMenuView = new ThemeContextMenuView(this.themeContextMenuController, this.logger, this.t);
         this.themeContextMenuController.setView?.(this.themeContextMenuView);

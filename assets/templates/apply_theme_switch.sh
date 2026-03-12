@@ -1,9 +1,13 @@
 #!/bin/bash
 {
+echo "========== $(date) ========== Switching to {{THEME_NAME}}"
 
 HOME="{{HOME_DIR}}"
 export HOME
 {{ISOLATION_SECTION}}
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export TMPDIR="${TMPDIR:-$XDG_CACHE_HOME/lastlayer-tmp}"
+mkdir -p "$TMPDIR" 2>/dev/null || true
 LOCK_PID_FILE="$HOME/.cache/llayer-apply.pid"
 
 if [ -f "$LOCK_PID_FILE" ]; then
@@ -28,9 +32,45 @@ PREF_DIR="$HOME/.config/lastlayer_pref"
 INTERMEDIATE_DEFAULT="{{INTERMEDIATE_DEFAULT}}"
 SETTINGS_JSON="$HOME/.config/lastlayer/settings.json"
 DEBUG_LOG="$HOME/.cache/llayer-debug.log"
+TRACE_LOG="$HOME/.cache/lastlayer-apply-trace.log"
+STATUS_FILE="$HOME/.cache/lastlayer-apply-status.env"
+HYPR_GENERATOR="$HOME/.config/lastlayer/src/infrastructure/hyprland/cli/GenerateHyprlandConfig.js"
 APPLY_TIMESTAMP=$(date -Iseconds)
 echo "[$APPLY_TIMESTAMP] [APPLY     ] Starting theme apply: $THEME (PID: $$)" >> "$DEBUG_LOG"
 [ -n "$VARIANT" ] && echo "[$APPLY_TIMESTAMP] [APPLY     ] Variant: $VARIANT" >> "$DEBUG_LOG"
+mkdir -p "$(dirname "$DEBUG_LOG")"
+: > "$STATUS_FILE"
+
+traceStage() {
+    local stage="$1"
+    shift
+    local ts
+    ts=$(date -Iseconds)
+    printf '[%s] [%s] %s\n' "$ts" "$stage" "$*" | tee -a "$TRACE_LOG" >> "$DEBUG_LOG"
+}
+
+statusSet() {
+    local key="$1"
+    shift
+    printf '%s=%s\n' "$key" "$*" >> "$STATUS_FILE"
+}
+
+runStage() {
+    local stage="$1"
+    shift
+    traceStage "$stage" "START"
+    "$@"
+    local rc=$?
+    traceStage "$stage" "END rc=$rc"
+    statusSet "${stage}_RC" "$rc"
+    return $rc
+}
+
+statusSet THEME "$THEME"
+statusSet VARIANT "${VARIANT:-none}"
+statusSet APPLY_PID "$$"
+statusSet APPLY_STARTED_AT "$APPLY_TIMESTAMP"
+statusSet APPLY_BRANCH "unknown"
 
 SHOW_INSTALL_TERMINAL="{{SHOW_INSTALL_TERMINAL}}"
 AUTO_CLOSE_INSTALL_TERMINAL="{{AUTO_CLOSE_INSTALL_TERMINAL}}"
@@ -47,7 +87,6 @@ DAEMON_POLL_INTERVAL="{{DAEMON_POLL_INTERVAL}}"
 SCRIPT_FILE_WAIT_INTERVAL="{{SCRIPT_FILE_WAIT_INTERVAL}}"
 WINDOW_OPERATION_DELAY="{{WINDOW_OPERATION_DELAY}}"
 PROCESS_CLEANUP_DELAY="{{PROCESS_CLEANUP_DELAY}}"
-WALLPAPER_ALREADY_APPLIED=0
 
 XTERM_WIDTH=80
 XTERM_HEIGHT=24
@@ -136,6 +175,8 @@ isBarRunning() {
             pgrep -x ags &>/dev/null \
                 || pgrep -x agsv1 &>/dev/null \
                 || pgrep -x ags-1.8.2 &>/dev/null \
+                || pgrep -x ags-2.0.0 &>/dev/null \
+                || pgrep -x ags-v2.3.0 &>/dev/null \
                 || pgrep -f "/run/user/$(id -u)/.*ags\\.js" &>/dev/null \
                 || pgrep -f "gjs.*(ags|Aylur)" &>/dev/null
             ;;
@@ -161,6 +202,8 @@ killAgs() {
     pkill -TERM -x ags 2>/dev/null || true
     pkill -TERM -x agsv1 2>/dev/null || true
     pkill -TERM -x ags-1.8.2 2>/dev/null || true
+    pkill -TERM -x ags-2.0.0 2>/dev/null || true
+    pkill -TERM -x ags-v2.3.0 2>/dev/null || true
     pkill -TERM -f "/run/user/$(id -u)/.*ags\\.js" 2>/dev/null || true
     pkill -TERM -f "gjs.*(ags|Aylur)" 2>/dev/null || true
     pkill -TERM -f "$HOME/.config/themes/yume/hyprland/scripts/controls.sh" 2>/dev/null || true
@@ -170,6 +213,8 @@ killAgs() {
     pkill -KILL -x ags 2>/dev/null || true
     pkill -KILL -x agsv1 2>/dev/null || true
     pkill -KILL -x ags-1.8.2 2>/dev/null || true
+    pkill -KILL -x ags-2.0.0 2>/dev/null || true
+    pkill -KILL -x ags-v2.3.0 2>/dev/null || true
     pkill -KILL -f "/run/user/$(id -u)/.*ags\\.js" 2>/dev/null || true
     pkill -KILL -f "gjs.*(ags|Aylur)" 2>/dev/null || true
     pkill -KILL -f "$HOME/.config/themes/yume/hyprland/scripts/controls.sh" 2>/dev/null || true
@@ -286,9 +331,10 @@ syncThemeConfigs() {
         [ -d "$src" ] && {
             mkdir -p "$HOME/.config/$app"
             rm -rf "$HOME/.config/$app"/* 2>/dev/null
-            cp -rf "$src/"* "$HOME/.config/$app/" 2>/dev/null
+            compgen -G "$src/*" >/dev/null && cp -rf "$src/"* "$HOME/.config/$app/" 2>/dev/null || true
         }
     done
+    return 0
 }
 
 syncGtkSettings() {
@@ -329,12 +375,14 @@ updateConfigs() {
         [ -f "$THEME_DIR/variants/$VARIANT/hypr/hyprland.conf" ] && hypr_source="$THEME_DIR/variants/$VARIANT/hypr/hyprland.conf"
     }
 
+    patchLastlayerConf
+    generateVersionAwareHyprlandConfig
+
     if [ -f "$hypr_source" ]; then
         [ -L "$HOME/.config/hypr/hyprland.conf" ] && rm -f "$HOME/.config/hypr/hyprland.conf"
         cp -f "$hypr_source" "$HOME/.config/hypr/hyprland.conf"
     fi
 
-    patchLastlayerConf
     patchVariantAppearance
     neutralizeWallpaperExecs
 }
@@ -377,6 +425,15 @@ LLEOF
         local source_line='source=$HOME/.config/themes/'"$THEME"'/hyprland/lastlayer.conf'
         local last_src=$(grep -n "^source=" "$THEME_HYPR_CONF" | tail -1 | cut -d: -f1)
         [ -n "$last_src" ] && sed -i "${last_src}a\\${source_line}" "$THEME_HYPR_CONF" || sed -i "1i\\${source_line}" "$THEME_HYPR_CONF"
+    }
+}
+
+generateVersionAwareHyprlandConfig() {
+    [ -f "$HYPR_GENERATOR" ] || return 0
+    command -v gjs &>/dev/null || return 0
+    gjs -m "$HYPR_GENERATOR" --theme-dir "$THEME_DIR" >> "$DEBUG_LOG" 2>&1 || {
+        echo "[$(date -Iseconds)] [HYPR-GEN ] Failed to generate version-aware config for $THEME" >> "$DEBUG_LOG"
+        return 1
     }
 }
 
@@ -767,30 +824,25 @@ detectExpectedBar() {
     local search_files="$THEME_DIR/hyprland.conf $THEME_DIR/hyprland/hyprland.conf $THEME_DIR/hyprland/execs.conf"
 
     [ -d "$THEME_DIR/hyprland" ] && search_files="$search_files $THEME_DIR/hyprland/*.conf"
-    [ -n "$VARIANT" ] && search_files="$search_files $THEME_DIR/variants/$VARIANT/hyprland.conf $THEME_DIR/variants/$VARIANT/hypr/hyprland.conf $THEME_DIR/variants/$VARIANT/hyprland/*.conf"
     local exec_lines
     exec_lines=$(grep -hE "^[[:space:]]*(exec-once|exec)[[:space:]]*=" $search_files 2>/dev/null || true)
     exec_lines=$(printf '%s\n' "$exec_lines" | grep -vE "^[[:space:]]*(exec-once|exec)[[:space:]]*=[[:space:]]*(pkill|killall|kill)\\b" || true)
 
-    local extra_lines=""
-    while IFS= read -r line; do
-        local candidates
-        candidates=$(printf '%s\n' "$line" | grep -oE '((~|\$HOME|/)[^ ;|&"]*autostart[^ ;|&"]*)' 2>/dev/null || true)
-        [ -z "$candidates" ] && continue
-        while IFS= read -r candidate; do
-            [ -z "$candidate" ] && continue
-            local resolved="$candidate"
-            resolved="${resolved/#\~/$HOME}"
-            resolved="${resolved//\$HOME/$HOME}"
-            [ -f "$resolved" ] || continue
-            extra_lines="${extra_lines}"$'\n'"$(grep -hEv '^[[:space:]]*(#|$)' "$resolved" 2>/dev/null || true)"
-        done <<< "$candidates"
-    done <<< "$exec_lines"
-
-    [ -n "$extra_lines" ] && exec_lines=$(printf '%s\n%s\n' "$exec_lines" "$extra_lines")
-
     for bar in {{BAR_LIST}}; do
-        if printf '%s\n' "$exec_lines" | grep -qiE "(^|[^[:alnum:]_-])$bar([^[:alnum:]_-]|$)"; then
+        local pattern=""
+        case "$bar" in
+            agsv1)
+                pattern='(^|[[:space:];|&/])(agsv1|ags-1\.8\.2)([[:space:]]|$)'
+                ;;
+            ags)
+                pattern='(^|[[:space:];|&/])(ags|ags-v[0-9][^[:space:]]*|ags-2\.[^[:space:]]*)([[:space:]]|$)'
+                ;;
+            *)
+                pattern="(^|[[:space:];|&/])$bar([[:space:]]|$)"
+                ;;
+        esac
+
+        if printf '%s\n' "$exec_lines" | grep -qE "$pattern"; then
             if ! echo "$bars_found" | grep -qE "(^|,)$bar(,|$)"; then
                 [ -n "$bars_found" ] && bars_found="$bars_found,"
                 bars_found="$bars_found$bar"
@@ -798,7 +850,169 @@ detectExpectedBar() {
         fi
     done
 
+    if ! echo "$bars_found" | grep -qE '(^|,)(ags|agsv1)(,|$)'; then
+        for _ags_dir in \
+            "$THEME_DIR/config/ags" \
+            "$THEME_DIR/components/ags" \
+            "$THEME_DIR/ags" \
+            "$THEME_DIR/base/ags"
+        do
+            [ -d "$_ags_dir" ] || continue
+            if [ -f "$_ags_dir/config.js" ]; then
+                [ -n "$bars_found" ] && bars_found="$bars_found,"
+                bars_found="${bars_found}agsv1"
+                break
+            elif [ -f "$_ags_dir/app.ts" ]; then
+                [ -n "$bars_found" ] && bars_found="$bars_found,"
+                bars_found="${bars_found}ags"
+                break
+            fi
+        done
+    fi
+
+    if ! echo "$bars_found" | grep -qE '(^|,)eww(,|$)'; then
+        for _eww_dir in \
+            "$THEME_DIR/config/eww" \
+            "$THEME_DIR/.config/eww" \
+            "$THEME_DIR/eww"
+        do
+            [ -f "$_eww_dir/eww.yuck" ] && {
+                [ -n "$bars_found" ] && bars_found="$bars_found,"
+                bars_found="${bars_found}eww"
+                break
+            }
+        done
+    fi
+
     echo "$bars_found"
+}
+
+resolveAgsDir() {
+    local dir=""
+    for dir in \
+        "$THEME_DIR/ags" \
+        "$THEME_DIR/config/ags" \
+        "$THEME_DIR/components/ags" \
+        "$THEME_DIR/base/ags"
+    do
+        [ -d "$dir" ] && { echo "$dir"; return 0; }
+    done
+
+    return 1
+}
+
+resolveAgsBin() {
+    local mode="${1:-auto}"
+    local candidates=()
+    local candidate=""
+
+    case "$mode" in
+        v1)
+            candidates=(
+                "$HOME/.local/bin/agsv1"
+                "$HOME/.local/bin/ags-1.8.2"
+                "$HOME/.local/bin/ags"
+            )
+            ;;
+        v2)
+            candidates=(
+                "$HOME/.local/bin/ags-v2.3.0"
+                "$HOME/.local/bin/ags-2.0.0"
+                "$HOME/.local/bin/ags"
+            )
+            ;;
+        *)
+            candidates=(
+                "$HOME/.local/bin/ags"
+                "$HOME/.local/bin/agsv1"
+                "$HOME/.local/bin/ags-v2.3.0"
+                "$HOME/.local/bin/ags-2.0.0"
+                "$HOME/.local/bin/ags-1.8.2"
+            )
+            ;;
+    esac
+
+    for candidate in "${candidates[@]}"; do
+        [ -x "$candidate" ] && { echo "$candidate"; return 0; }
+    done
+
+    case "$mode" in
+        v1)
+            command -v agsv1 2>/dev/null || command -v ags 2>/dev/null || true
+            ;;
+        *)
+            command -v ags 2>/dev/null || command -v agsv1 2>/dev/null || true
+            ;;
+    esac
+}
+
+buildAgsStartCmd() {
+    local preferred="${1:-auto}"
+    local ags_dir=""
+    ags_dir=$(resolveAgsDir) || return 1
+
+    local mode=""
+    case "$preferred" in
+        agsv1|v1) mode="v1" ;;
+        ags|v2) mode="v2" ;;
+    esac
+
+    [ -f "$ags_dir/config.js" ] && mode="v1"
+    [ -f "$ags_dir/app.ts" ] && mode="v2"
+
+    case "$mode" in
+        "")
+            case "$preferred" in
+                agsv1|v1) mode="v1" ;;
+                *) mode="v2" ;;
+            esac
+            ;;
+    esac
+
+    local ags_bin=""
+    ags_bin=$(resolveAgsBin "$mode")
+    [ -n "$ags_bin" ] || return 1
+
+    case "$mode" in
+        v1)
+            if [ -f "$ags_dir/config.js" ]; then
+                printf '"%s" -c "%s"' "$ags_bin" "$ags_dir/config.js"
+            else
+                printf '"%s"' "$ags_bin"
+            fi
+            ;;
+        v2)
+            if [ -x "$ags_dir/themes/init.sh" ]; then
+                printf '"%s" >/dev/null 2>&1 || true; "%s" run -d "%s"' "$ags_dir/themes/init.sh" "$ags_bin" "$ags_dir"
+            else
+                printf '"%s" run -d "%s"' "$ags_bin" "$ags_dir"
+            fi
+            ;;
+    esac
+}
+
+themeNeedsAgsRuntime() {
+    local expected_bars=""
+    expected_bars="${EXPECTED_BARS_CACHE:-$(detectExpectedBar)}"
+
+    case ",$expected_bars," in
+        *,ags,*|*,agsv1,*) return 0 ;;
+    esac
+
+    resolveAgsDir >/dev/null 2>&1
+}
+
+themeHasAgsRuntime() {
+    local expected_bars=""
+    local mode="auto"
+    expected_bars="${EXPECTED_BARS_CACHE:-$(detectExpectedBar)}"
+
+    case ",$expected_bars," in
+        *,agsv1,*) mode="v1" ;;
+        *,ags,*) mode="v2" ;;
+    esac
+
+    [ -n "$(resolveAgsBin "$mode")" ]
 }
 
 getRiceBarCommand() {
@@ -834,8 +1048,10 @@ getRiceBarCommand() {
         eww)
             [ -d "$THEME_DIR/eww" ] && echo "eww daemon -c $THEME_DIR/eww && eww open bar -c $THEME_DIR/eww" || echo "eww daemon && eww open bar"
             ;;
-        ags)
-            [ -d "$THEME_DIR/ags" ] && echo "ags -c $THEME_DIR/ags/config.js" || echo "ags"
+        ags|agsv1)
+            local ags_cmd=""
+            ags_cmd=$(buildAgsStartCmd "$bar")
+            [ -n "$ags_cmd" ] && echo "$ags_cmd" || echo "$bar"
             ;;
         hyprpanel)
             local rice_bin="$HOME/.local/share/lastlayer/programs/rices/$THEME/bin/hyprpanel"
@@ -864,7 +1080,8 @@ prestartConfiguredBars() {
         [ -z "$bar" ] && continue
         isBarRunning "$bar" && continue
 
-        local cmd=$(getBarStartCmd "$bar")
+        local cmd=$(getRiceBarCommand "$bar")
+        [ -z "$cmd" ] && cmd=$(getBarStartCmd "$bar")
         [ -n "$cmd" ] && {
             command -v hyprctl &>/dev/null && hyprctl dispatch exec "$cmd" 2>/dev/null || setsid bash -c "$cmd" &>/dev/null &
         }
@@ -916,6 +1133,9 @@ installThemeApps() {
     local variant_dir="$THEME_DIR"
     [ -n "$VARIANT" ] && [ -d "$THEME_DIR/variants/$VARIANT" ] && variant_dir="$THEME_DIR/variants/$VARIANT"
     local install_script="${PATCHED_INSTALL_SCRIPT:-$(resolveInstallScriptPath "$variant_dir")}"
+    local script_rc=0
+
+    statusSet INSTALL_SCRIPT_PATH "$install_script"
 
     [ ! -f "$install_script" ] && { echo "Install script not found: $install_script"; return 1; }
 
@@ -935,7 +1155,8 @@ installThemeApps() {
         sed "s|xterm |xterm $xterm_args |g" "$install_script" > "$temp_script"
         chmod +x "$temp_script"
 
-        bash "$temp_script" || true
+        bash "$temp_script"
+        script_rc=$?
 
         local max_wait=50 waited=0
         while ! hyprctl clients -j 2>/dev/null | jq -e ".[] | select(.class == \"$xterm_class\")" &>/dev/null; do
@@ -953,6 +1174,7 @@ installThemeApps() {
         fi
 
         rm -f "$temp_script"
+        return "$script_rc"
     elif [ "$SHOW_INSTALL_TERMINAL" = "true" ]; then
         local wrapper_script
         wrapper_script=$(mktemp --suffix=_wrap.sh)
@@ -976,10 +1198,13 @@ WRAPEOF
         positionXtermWindow "$xterm_class"
 
         wait $xterm_pid 2>/dev/null || true
+        script_rc=$?
         rm -f "$wrapper_script"
+        return "$script_rc"
     else
         echo "Running install script silently (SHOW_INSTALL_TERMINAL=false)"
-        bash "$install_script" || true
+        bash "$install_script"
+        return $?
     fi
 }
 
@@ -987,6 +1212,9 @@ setAfterInstallActions() {
     local variant_dir="$THEME_DIR"
     [ -n "$VARIANT" ] && [ -d "$THEME_DIR/variants/$VARIANT" ] && variant_dir="$THEME_DIR/variants/$VARIANT"
     local script="${PATCHED_POSTINSTALL_SCRIPT:-$(resolvePostInstallScriptPath "$variant_dir")}"
+    local script_rc=0
+
+    statusSet POSTINSTALL_SCRIPT_PATH "$script"
 
     [ "$SKIP_INSTALL_SCRIPT" = "1" ] && [ ! -f "$script" ] && {
         local i=0; while [ ! -f "$script" ] && [ $i -lt 40 ]; do sleep "$SCRIPT_FILE_WAIT_INTERVAL"; i=$((i+1)); done
@@ -1010,7 +1238,8 @@ setAfterInstallActions() {
         sed "s|xterm |xterm $xterm_args |g" "$script" > "$temp_script"
         chmod +x "$temp_script"
 
-        bash "$temp_script" || true
+        bash "$temp_script"
+        script_rc=$?
 
         local max_wait=50 waited=0
         while ! hyprctl clients -j 2>/dev/null | jq -e ".[] | select(.class == \"$xterm_class\")" &>/dev/null; do
@@ -1028,6 +1257,7 @@ setAfterInstallActions() {
         fi
 
         rm -f "$temp_script"
+        return "$script_rc"
     elif [ "$SHOW_AFTER_INSTALL_TERMINAL" = "true" ]; then
         local wrapper_script
         wrapper_script=$(mktemp --suffix=_wrap.sh)
@@ -1051,10 +1281,13 @@ WRAPEOF
         positionXtermWindow "$xterm_class"
 
         wait $xterm_pid 2>/dev/null || true
+        script_rc=$?
         rm -f "$wrapper_script"
+        return "$script_rc"
     else
         echo "Running post-install script silently (SHOW_AFTER_INSTALL_TERMINAL=false)"
-        bash "$script" || true
+        bash "$script"
+        return $?
     fi
 }
 
@@ -1067,7 +1300,7 @@ altBarCheck() {
     expected_bars=$(detectExpectedBar)
     echo "Expected bars from rice config: ${expected_bars:-none detected}"
 
-    [ -z "$expected_bars" ] && [ -z "$alt" -o "$alt" = "none" ] && return
+    [ -z "$expected_bars" ] && [ -z "$alt" -o "$alt" = "none" ] && return 0
 
     local max_checks=$(awk -v timeout="$global_timeout" -v interval="$BAR_CHECK_INTERVAL" 'BEGIN {
         t = timeout + 0
@@ -1131,7 +1364,7 @@ altBarCheck() {
             sleep "$WINDOW_OPERATION_DELAY"
             eww open bar &>/dev/null || true
         }
-        return
+        return 0
     fi
 
     if [ -n "$expected_bars" ]; then
@@ -1161,7 +1394,7 @@ altBarCheck() {
                     sleep "$WINDOW_OPERATION_DELAY"
                     eww open bar &>/dev/null || true
                 }
-                return
+                return 0
             }
         done
     fi
@@ -1170,6 +1403,7 @@ altBarCheck() {
         echo "Falling back to alt bar: $alt"
         nohup "$alt" &>/dev/null & disown
     fi
+    return 0
 }
 
 updateActiveVariant() {
@@ -1193,7 +1427,7 @@ reapplyOverrides() {
     applyHyprlandOverrides
     applyHotkeyOverrides
 
-    [ "$WALLPAPER_ALREADY_APPLIED" = "1" ] || changeWallpaper
+    changeWallpaper
 }
 
 [ -z "$THEME" ] && { echo "Usage: switch_theme.sh <theme-name>"; exit 1; }
@@ -1205,6 +1439,8 @@ CURRENT_THEME=$(jq -r '.theme // "default"' "$SETTINGS_JSON" 2>/dev/null)
 }
 
 if [ "$THEME" = "default" ]; then
+    statusSet APPLY_BRANCH "default"
+    branch_failed=0
     manageBars record
     echo "Restoring default configuration"
 
@@ -1239,7 +1475,7 @@ if [ "$THEME" = "default" ]; then
     pkill -9 -x hyprpaper 2>/dev/null || true
     pkill -9 -x swaybg 2>/dev/null || true
     sleep "$PROCESS_CLEANUP_DELAY"
-    hyprctl reload 2>/dev/null || true
+    runStage HYPR_RELOAD hyprctl reload || branch_failed=1
     _reload_wait=0
     while [ "$_reload_wait" -lt 10 ]; do
         hyprctl version &>/dev/null && break
@@ -1247,8 +1483,8 @@ if [ "$THEME" = "default" ]; then
         _reload_wait=$((_reload_wait + 1))
     done
 
-    applyHyprlandOverrides
-    applyHotkeyOverrides
+    runStage REAPPLY_OVERRIDES applyHyprlandOverrides || branch_failed=1
+    runStage HOTKEY_OVERRIDES applyHotkeyOverrides || branch_failed=1
 
     WP_SOURCE="$HOME/.config/themes/default/default_wallpapers/wallpaper_source.txt"
     if [ -f "$WP_SOURCE" ]; then
@@ -1264,32 +1500,40 @@ if [ "$THEME" = "default" ]; then
         fi
     fi
 
-    setAfterInstallActions
+    runStage POST_INSTALL_ACTIONS setAfterInstallActions || branch_failed=1
     sync
     manageBars restore
     mkdir -p "$PREF_DIR"
     echo "$THEME" > "$PREF_DIR/current_theme"
+    statusSet APPLY_SUCCESS "$((branch_failed == 0))"
     exit 0
 fi
 
 manageBars record
-checkThemeDir
-syncThemeConfigs
+runStage CHECK_THEME_DIR checkThemeDir || exit 1
+runStage SYNC_THEME_CONFIGS syncThemeConfigs
+EXPECTED_BARS_CACHE="$(detectExpectedBar)"
+statusSet EXPECTED_BARS "${EXPECTED_BARS_CACHE:-none}"
 prestartConfiguredBars
-syncGtkSettings
-updateConfigs
-if changeWallpaper; then
-    WALLPAPER_ALREADY_APPLIED=1
-fi
-applyHyprlandOverrides
-applyHotkeyOverrides
+runStage SYNC_GTK_SETTINGS syncGtkSettings
+runStage UPDATE_CONFIGS updateConfigs
+runStage APPLY_HYPR_OVERRIDES applyHyprlandOverrides
+runStage APPLY_HOTKEY_OVERRIDES applyHotkeyOverrides
 theme_in_skip=false
 [ -f "$SETTINGS_JSON" ] && jq -e --arg theme "$THEME" '.skip_install_theme_apps | index($theme)' "$SETTINGS_JSON" >/dev/null && theme_in_skip=true
 [ "$SKIP_INSTALL_SCRIPT" = "1" ] && theme_in_skip=true
 
+if [ "$theme_in_skip" = "true" ] && themeNeedsAgsRuntime && ! themeHasAgsRuntime; then
+    echo "Theme $THEME requires AGS runtime, but AGS is not installed. Running install script."
+    theme_in_skip=false
+fi
+
+statusSet THEME_IN_SKIP "$theme_in_skip"
+
 if [ "$theme_in_skip" = "true" ]; then
+    statusSet APPLY_BRANCH "skip"
+    branch_failed=0
     echo "Theme $THEME skip install, running only post-install"
-    setAfterInstallActions
 
     [ -f "$SETTINGS_JSON" ] && {
         jq --arg theme "$THEME" '.theme = $theme' "$SETTINGS_JSON" > "$SETTINGS_JSON.tmp" && mv "$SETTINGS_JSON.tmp" "$SETTINGS_JSON"
@@ -1299,33 +1543,42 @@ if [ "$theme_in_skip" = "true" ]; then
     mkdir -p "$PREF_DIR"
     echo "$THEME" > "$PREF_DIR/current_theme"
 
-    hyprctl reload
+    runStage HYPR_RELOAD hyprctl reload || branch_failed=1
     sleep "$POST_RELOAD_DELAY"
-    reapplyOverrides
+    runStage REAPPLY_OVERRIDES reapplyOverrides || branch_failed=1
+    runStage POST_INSTALL_ACTIONS setAfterInstallActions || branch_failed=1
 
     pkill -9 wal 2>/dev/null || true
-    altBarCheck
+    runStage ALT_BAR_CHECK altBarCheck || branch_failed=1
 
-    echo "Theme $THEME applied successfully"
-    [ -n "$VARIANT" ] && echo "Active variant: $VARIANT"
-
+    statusSet APPLY_SUCCESS "$((branch_failed == 0))"
     COMPLETE_TS=$(date -Iseconds)
-    echo "[$COMPLETE_TS] [APPLY     ] Theme apply completed successfully: $THEME" >> "$DEBUG_LOG"
+    if [ "$branch_failed" -eq 0 ]; then
+        echo "Theme $THEME applied successfully"
+        [ -n "$VARIANT" ] && echo "Active variant: $VARIANT"
+        echo "[$COMPLETE_TS] [APPLY     ] Theme apply completed successfully: $THEME" >> "$DEBUG_LOG"
+    else
+        echo "Theme $THEME apply completed with errors"
+        echo "[$COMPLETE_TS] [APPLY     ] Theme apply completed with errors: $THEME" >> "$DEBUG_LOG"
+        exit 1
+    fi
 else
+    statusSet APPLY_BRANCH "install"
+    branch_failed=0
     echo "Theme $THEME not in skip list, running installation"
-    installThemeApps
-    setAfterInstallActions
+    runStage INSTALL_THEME_APPS installThemeApps || branch_failed=1
 
     pkill -9 wal 2>/dev/null || true
     pkill -9 pywal 2>/dev/null || true
     sleep "$POST_INSTALL_DELAY"
 
-    hyprctl reload
+    runStage HYPR_RELOAD hyprctl reload || branch_failed=1
     sleep "$POST_RELOAD_DELAY"
-    reapplyOverrides
+    runStage REAPPLY_OVERRIDES reapplyOverrides || branch_failed=1
+    runStage POST_INSTALL_ACTIONS setAfterInstallActions || branch_failed=1
 
     pkill -9 wal 2>/dev/null || true
-    altBarCheck
+    runStage ALT_BAR_CHECK altBarCheck || branch_failed=1
 
     [ -f "$SETTINGS_JSON" ] && {
         jq --arg theme "$THEME" '.theme = $theme' "$SETTINGS_JSON" > "$SETTINGS_JSON.tmp" && mv "$SETTINGS_JSON.tmp" "$SETTINGS_JSON"
@@ -1335,11 +1588,17 @@ else
     mkdir -p "$PREF_DIR"
     echo "$THEME" > "$PREF_DIR/current_theme"
 
-    echo "Theme $THEME installed and applied successfully"
-    [ -n "$VARIANT" ] && echo "Active variant: $VARIANT"
-
+    statusSet APPLY_SUCCESS "$((branch_failed == 0))"
     COMPLETE_TS=$(date -Iseconds)
-    echo "[$COMPLETE_TS] [INSTALL   ] Theme install completed successfully: $THEME" >> "$DEBUG_LOG"
+    if [ "$branch_failed" -eq 0 ]; then
+        echo "Theme $THEME installed and applied successfully"
+        [ -n "$VARIANT" ] && echo "Active variant: $VARIANT"
+        echo "[$COMPLETE_TS] [INSTALL   ] Theme install completed successfully: $THEME" >> "$DEBUG_LOG"
+    else
+        echo "Theme $THEME install/apply completed with errors"
+        echo "[$COMPLETE_TS] [INSTALL   ] Theme install/apply completed with errors: $THEME" >> "$DEBUG_LOG"
+        exit 1
+    fi
 fi
 } >> ~/.cache/switch_theme.log 2>&1
 

@@ -1,10 +1,14 @@
 import Gtk from 'gi://Gtk?version=3.0';
+import Gdk from 'gi://Gdk?version=3.0';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import { addPointerCursor, applyOptionalSetters, wrapTabLabel } from '../../common/ViewUtils.js';
 import { runMessageDialog } from '../../common/ViewUtilsDialogs.js';
 import { tryOrNull, tryRun } from '../../../infrastructure/utils/ErrorUtils.js';
 import { Events } from '../../../app/eventBus.js';
+
+const POPUP_DEFAULT_WIDTH = 620;
+const POPUP_DEFAULT_HEIGHT = 550;
 
 function resetOverrideState(context) {
     context.originalValues = {};
@@ -16,12 +20,47 @@ function resetOverrideState(context) {
 }
 
 export function applyHyprlandOverridePopupWindow(prototype) {
+    prototype.resolveParentWindow = function(parentWindow = null) {
+        const topLevel = typeof parentWindow?.get_toplevel === 'function'
+            ? parentWindow.get_toplevel()
+            : null;
+
+        const candidates = [
+            parentWindow instanceof Gtk.Window
+                ? (parentWindow.get_transient_for?.() || parentWindow)
+                : null,
+            topLevel instanceof Gtk.Window ? topLevel : null
+        ];
+
+        return candidates.find((candidate) => candidate instanceof Gtk.Window) || null;
+    };
+
+    prototype.enforcePopupGeometry = function() {
+        if (!this.popup) {
+            return;
+        }
+
+        const geometry = new Gdk.Geometry();
+        geometry.min_width = POPUP_DEFAULT_WIDTH;
+        geometry.max_width = POPUP_DEFAULT_WIDTH;
+        geometry.min_height = POPUP_DEFAULT_HEIGHT;
+        geometry.max_height = POPUP_DEFAULT_HEIGHT;
+
+        this.popup.set_geometry_hints?.(
+            null,
+            geometry,
+            Gdk.WindowHints.MIN_SIZE | Gdk.WindowHints.MAX_SIZE
+        );
+        this.popup.set_size_request?.(POPUP_DEFAULT_WIDTH, POPUP_DEFAULT_HEIGHT);
+        this.popup.set_default_size?.(POPUP_DEFAULT_WIDTH, POPUP_DEFAULT_HEIGHT);
+        this.popup.resize?.(POPUP_DEFAULT_WIDTH, POPUP_DEFAULT_HEIGHT);
+    };
 
     prototype.show = function(theme, parentWindow = null) {
         if (!theme) return;
 
         this.currentTheme = theme;
-        this.parentWindow = parentWindow;
+        this.parentWindow = this.resolveParentWindow(parentWindow);
         this._hotkeyOverridesInitialized = false;
         this.digRollbackHotkeysSnapshot = null;
         this.digRollbackParamsSnapshot = null;
@@ -35,12 +74,15 @@ export function applyHyprlandOverridePopupWindow(prototype) {
         this.createPopupWindow();
         this.buildContent();
 
+        this.enforcePopupGeometry();
         this.popup.show_all();
+        this.enforcePopupGeometry();
         this.popup.present();
         this.popup.grab_focus();
 
         GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
             const win = this.popup?.get_window?.();
+            this.enforcePopupGeometry();
             win?.show?.();
             win?.raise?.();
             win?.focus?.(0);
@@ -108,17 +150,25 @@ export function applyHyprlandOverridePopupWindow(prototype) {
         this.popup = new Gtk.Dialog({
             title: `${this.t('HYPRLAND_PARAMS_TITLE') || 'Hyprland Parameters'} - ${this.currentTheme?.title || this.currentTheme?.name || ''}`,
             modal: true,
-            resizable: true,
-            default_width: 620,
-            default_height: 550
+            resizable: false,
+            default_width: POPUP_DEFAULT_WIDTH,
+            default_height: POPUP_DEFAULT_HEIGHT
         });
 
         applyOptionalSetters([[this.parentWindow, (window) => this.popup.set_transient_for(window), Boolean]]);
 
+        this.popup.set_destroy_with_parent(true);
         this.popup.set_keep_above(true);
-        this.popup.set_type_hint(1);
+        this.popup.set_type_hint(Gdk.WindowTypeHint.DIALOG);
         this.popup.set_position(Gtk.WindowPosition.CENTER_ON_PARENT);
+        this.popup.set_focus_on_map?.(true);
+        this.popup.set_accept_focus?.(true);
         this.popup.get_style_context().add_class('hyprland-override-popup');
+        this.popup.get_style_context().add_class('config-dialog');
+        this.cssProvider && this.popup.get_style_context().add_provider(
+            this.cssProvider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
 
         this.popup.connect('key-press-event', (widget, event) => {
             const [ok, keyval] = event.get_keyval();
@@ -140,6 +190,7 @@ export function applyHyprlandOverridePopupWindow(prototype) {
 
     prototype.buildContent = function() {
         const contentArea = this.popup.get_content_area();
+        contentArea.get_style_context().add_class('hyprland-override-popup-content');
         contentArea.set_spacing(8);
         contentArea.set_margin_top(16);
         contentArea.set_margin_bottom(16);
@@ -148,6 +199,8 @@ export function applyHyprlandOverridePopupWindow(prototype) {
 
         this.notebook = new Gtk.Notebook();
         this.notebook.set_show_border(false);
+        this.notebook.get_style_context().add_class('hyprland-override-notebook');
+        this.notebook.get_style_context().add_class('tweaks-notebook');
 
         const addTab = (labelText, buildFn) => {
             const page = new Gtk.Box({
@@ -157,6 +210,7 @@ export function applyHyprlandOverridePopupWindow(prototype) {
             page.set_margin_top(12);
             page.set_margin_start(8);
             page.set_margin_end(8);
+            page.get_style_context().add_class('tweaks-basic-container');
             buildFn?.(page);
             const label = new Gtk.Label({ label: labelText });
             this.notebook.append_page(page, wrapTabLabel(label));
@@ -303,12 +357,13 @@ export function applyHyprlandOverridePopupWindow(prototype) {
         });
 
         const nameHeader = new Gtk.Label({
-            label: `● ${this.t('OVERRIDDEN_LABEL') || 'Overridden'}`,
+            label: `\u25cf ${this.t('OVERRIDDEN_LABEL') || 'Overridden'}`,
             halign: Gtk.Align.START,
             xalign: 0
         });
         nameHeader.set_size_request(150, -1);
         nameHeader.get_style_context().add_class('success');
+        nameHeader.set_label(`\u25cf ${this.t('OVERRIDDEN_LABEL') || 'Overridden'}`);
         this.sizeGroups.name.add_widget(nameHeader);
         headerRow.pack_start(nameHeader, false, false, 0);
 
@@ -347,11 +402,13 @@ export function applyHyprlandOverridePopupWindow(prototype) {
             vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
             expand: true
         });
+        scrolled.get_style_context().add_class('hyprland-override-scrolled');
 
         const listBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 4
         });
+        listBox.get_style_context().add_class('hyprland-override-list');
 
         const parameters = this.getSortedParameters();
 
@@ -400,6 +457,7 @@ export function applyHyprlandOverridePopupWindow(prototype) {
         const cancelBtn = new Gtk.Button({
             label: this.t('CANCEL') || 'Cancel'
         });
+        cancelBtn.get_style_context().add_class('cancel-btn');
         addPointerCursor(cancelBtn);
         cancelBtn.connect('clicked', () => this.handleCancelClose());
         buttonBox.pack_start(cancelBtn, false, false, 0);
@@ -408,6 +466,7 @@ export function applyHyprlandOverridePopupWindow(prototype) {
             label: this.t('SAVE_BTN') || 'Save'
         });
         saveBtn.get_style_context().add_class('suggested-action');
+        saveBtn.get_style_context().add_class('save-btn');
         addPointerCursor(saveBtn);
         saveBtn.connect('clicked', () => this.handleSave());
         buttonBox.pack_start(saveBtn, false, false, 0);

@@ -39,7 +39,7 @@ export function defineChildren(box) {
             const children = typeof box.get_children === 'function' ? box.get_children() : [],
                 incoming = Array.isArray(arr) ? arr : [];
             children.forEach(child => box.remove?.(child));
-            incoming.forEach(ch => {
+            incoming.filter(Boolean).forEach(ch => {
                 const oldParent = ch?.get_parent?.();
                 oldParent && oldParent !== box && oldParent.remove?.(ch);
                 !ch?.get_parent?.() && box.pack_start(ch, false, false, 0);

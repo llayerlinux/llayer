@@ -23,6 +23,7 @@ export class EventBindingsStub {
 const makeKeys = (...keys) => keys;
 
 export const TAB_CLASS_KEYS = makeKeys('SettingsTab', 'AdvancedTab', 'HyprlandTab', 'StartPointTab', 'HelpTab', 'AboutTab');
+export const SUPPORTER_TAB_KEYS = ['OverrideTab', 'ImportTab', 'SystemTab', 'DebugTab'];
 export const SECTION_CLASS_KEYS = makeKeys('ThemeAppsSection', 'SecuritySection');
 export const CORE_DEP_KEYS = makeKeys('mainWindow', 'BarRegistry', 'makeRoundedPixbuf', 'loadStartupData', 'playSound');
 export const WINDOW_HINT_METHODS = makeKeys('set_keep_above', 'set_skip_taskbar_hint', 'set_skip_pager_hint');
