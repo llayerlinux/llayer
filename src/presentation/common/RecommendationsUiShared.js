@@ -122,7 +122,7 @@ export function buildRecommendationToggleButton(options = {}) {
     } = options;
 
     const applyPointerCursor = getPointerCursorHandler(pointerCursor);
-    const toggleBtn = new Gtk.Button({ label: isApplied ? '✓' : '' });
+    const toggleBtn = new Gtk.Button({ label: isApplied ? '\u2713' : '' });
     toggleBtn.set_size_request(width, height);
     toggleBtn.get_style_context().add_class('rec-toggle');
     toggleBtn.get_style_context().add_class(isApplied ? 'rec-toggle-on' : 'rec-toggle-off');
@@ -184,7 +184,7 @@ export function buildRecommendationChildCard(options = {}) {
     });
     card.get_style_context().add_class('rec-card-child');
 
-    const toggleBtn = new Gtk.Button({ label: isApplied ? '✓' : '' });
+    const toggleBtn = new Gtk.Button({ label: isApplied ? '\u2713' : '' });
     toggleBtn.set_size_request(14, 14);
     toggleBtn.get_style_context().add_class('rec-toggle');
     toggleBtn.get_style_context().add_class('rec-toggle-child');

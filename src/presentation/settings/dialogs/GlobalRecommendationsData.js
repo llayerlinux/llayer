@@ -74,7 +74,7 @@ export function getGlobalRecommendedSettings() {
             label: 'Enable pseudo-tiling for all windows',
             descriptionKey: 'RECOMMENDATION_PSEUDO_RULE_DESC',
             description: 'Windows keep their size in tiling layout',
-            primaryRule: 'windowrulev2 = pseudo'
+            primaryRule: 'windowrule = pseudo on, match:class .*'
         },
         workspace_float_all: {
             category: 'FLOAT_WORKSPACES',

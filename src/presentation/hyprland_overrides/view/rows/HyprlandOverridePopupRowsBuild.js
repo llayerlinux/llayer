@@ -151,6 +151,7 @@ export function applyHyprlandOverridePopupRowsBuild(prototype) {
             valign: Gtk.Align.CENTER,
             sensitive: this.getOriginalValue(param.fullPath) !== null
         });
+        arrowBtn.get_style_context().add_class('hotkey-arrow-btn');
         arrowBtn.set_tooltip_text(this.t('RESTORE_ORIGINAL_TOOLTIP') || 'Restore original value');
         addPointerCursor(arrowBtn);
         arrowBtn.connect('clicked', () => {

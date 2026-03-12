@@ -53,6 +53,7 @@ export const Events = {
     THEME_DOWNLOAD_CANCELLED: 'theme.download.cancelled',
     THEME_REPOSITORY_UPDATED: 'theme.repository.updated',
 
+    THEME_INSTALL_START: 'theme.install.start',
     THEME_INSTALL_STOP: 'theme.install.stop',
 
     THEMES_LOCAL_UPDATED: 'themes.local.updated',
@@ -95,5 +96,10 @@ export const Events = {
     TWEAKS_TAB_CHANGED: 'tweaks:tab-changed',
 
     THEME_APPLIED: 'theme.applied',
-    THEME_DELETED: 'theme.deleted'
+    THEME_DELETED: 'theme.deleted',
+    INBOX_IMPORT_STARTED: 'inbox.import.started',
+    INBOX_THEME_IMPORTED: 'inbox.theme.imported',
+    UNIFIER_LOG: 'unifier.log',
+    WM_CONVERSION_START: 'wm.conversion.start',
+    WM_CONVERSION_COMPLETE: 'wm.conversion.complete',
 };

@@ -1,7 +1,65 @@
 import {copyPrototypeDescriptors} from '../../../infrastructure/utils/PrototypeMixins.js';
-import Soup from 'gi://Soup?version=2.4';
+import GLib from 'gi://GLib';
+import Soup from 'gi://Soup';
 import { REDDIT_USER_AGENT } from './ThemeContextMenuConstants.js';
 import { tryOrNull } from '../../../infrastructure/utils/ErrorUtils.js';
+
+function getSoupStatus(message) {
+    return Number(message?.status_code ?? message?.get_status?.() ?? 0) || 0;
+}
+
+function decodeSoupBody(bodyData) {
+    if (!bodyData) {
+        return null;
+    }
+
+    const bytes = bodyData instanceof GLib.Bytes
+        ? (bodyData.get_data?.() || bodyData.toArray?.() || null)
+        : bodyData;
+    return typeof bytes === 'string'
+        ? bytes
+        : ((bytes instanceof Uint8Array || (bytes && typeof bytes === 'object'))
+            ? new TextDecoder('utf-8').decode(bytes)
+            : null);
+}
+
+function sendSoupMessage(session, message, callback) {
+    if (typeof session?.queue_message === 'function') {
+        session.queue_message(message, (_session, response) => {
+            callback({
+                message: response,
+                body: response?.response_body?.data ?? null,
+                error: null
+            });
+        });
+        return;
+    }
+
+    if (typeof session?.send_and_read_async === 'function' && typeof session?.send_and_read_finish === 'function') {
+        session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (currentSession, result) => {
+            try {
+                callback({
+                    message,
+                    body: currentSession.send_and_read_finish(result),
+                    error: null
+                });
+            } catch (error) {
+                callback({
+                    message,
+                    body: null,
+                    error
+                });
+            }
+        });
+        return;
+    }
+
+    callback({
+        message,
+        body: null,
+        error: new Error('Unsupported Soup session API')
+    });
+}
 
 class ThemeContextMenuViewMetadataReddit {
     isRedditUrl(url) {
@@ -21,10 +79,9 @@ class ThemeContextMenuViewMetadataReddit {
         let message = Soup.Message.new('GET', apiUrl);
         message.request_headers.append('Accept', 'application/json');
         message.request_headers.append('User-Agent', REDDIT_USER_AGENT);
-        session.queue_message(message, (_sess, msg) => {
-            let ok = msg && msg.status_code >= 200 && msg.status_code < 300;
-            let bodyData = ok && msg.response_body?.data;
-            let jsonText = bodyData && this.decodeBody(bodyData);
+        sendSoupMessage(session, message, ({message: response, body, error}) => {
+            let ok = !error && response && getSoupStatus(response) >= 200 && getSoupStatus(response) < 300;
+            let jsonText = ok ? decodeSoupBody(body) : null;
             let child = jsonText
                 ? tryOrNull('ThemeContextMenuViewMetadataReddit.fetchRedditStats.parse', () => JSON.parse(jsonText))?.data?.children?.[0]?.data
                 : null;

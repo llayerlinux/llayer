@@ -67,7 +67,7 @@ function getWindowControlRecommendationTemplates() {
             type: 'rule',
             id: 'windowrule_pseudo_all',
             parentId: 'mouse_resizewindow',
-            ruleLine: 'windowrulev2 = pseudo, class:.*'
+            ruleLine: 'windowrule = pseudo on, match:class .*'
         },
         {
             type: 'workspaceRule',

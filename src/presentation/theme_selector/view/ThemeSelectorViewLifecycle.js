@@ -285,10 +285,21 @@ class ThemeSelectorViewLifecycle {
                 themeRepository: this.tryGetService('themeRepository'),
                 settingsManager: this.tryGetService('settingsManager'),
                 eventBus: this.getEventBus?.(),
-                logger: this.tryGetService('logger')
+                logger: this.tryGetService('logger'),
+                cssProvider: this.cssProvider || null
             });
         }
-        this.hyprlandOverridePopup.show(theme, triggerWidget);
+        this.hyprlandOverridePopup.cssProvider = this.cssProvider || null;
+        const topLevel = typeof triggerWidget?.get_toplevel === 'function'
+            ? triggerWidget.get_toplevel()
+            : null;
+        const parentWindow = [
+            triggerWidget instanceof Gtk.Window ? (triggerWidget.get_transient_for?.() || triggerWidget) : null,
+            topLevel instanceof Gtk.Window ? topLevel : null,
+            this.window
+        ].find((candidate) => candidate instanceof Gtk.Window) || null;
+
+        this.hyprlandOverridePopup.show(theme, parentWindow);
     }
 
     destroy() {

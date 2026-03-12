@@ -59,15 +59,19 @@ class ApplyThemeCore {
     }
 
     getOperationFlags(settings, themeName, options) {
-        const skipInstall = Array.isArray(settings.skip_install_theme_apps) &&
+        const skipBySettings = Array.isArray(settings.skip_install_theme_apps) &&
             settings.skip_install_theme_apps.includes(themeName);
+        const skipByFlyMode = options.flySkipInstallScript === true;
+        const skipInstall = skipBySettings || skipByFlyMode;
 
         skipInstall && !options.isReapplying && (options.isReapplying = true);
+        const isReapplying = !!options.isReapplying;
 
         return {
             skipInstall,
-            isInstallOperation: !options.isReapplying && !skipInstall,
-            isApplyOperation: options.isReapplying || skipInstall
+            isInstallOperation: !isReapplying && !skipInstall,
+            isApplyOperation: isReapplying || skipInstall,
+            isReapplying
         };
     }
 

@@ -2,9 +2,9 @@ import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk?version=3.0';
 import Gtk from 'gi://Gtk?version=3.0';
 import GdkPixbuf from 'gi://GdkPixbuf';
-import WebKit2 from 'gi://WebKit2?version=4.0';
 import { Commands } from '../../../infrastructure/constants/Commands.js';
 import { APP_URLS, DEFAULT_SUPPORT_URL } from '../../../infrastructure/constants/AppUrls.js';
+import { getWebKit2 } from '../../common/WebKitUtils.js';
 import {addPointerCursor, applyLabelAttributes, applyOptionalSetters} from '../../common/ViewUtils.js';
 
 const CONTACT_SCHEMES = ['http://', 'https://', 'tg://'];
@@ -256,17 +256,30 @@ export class AboutTab {
         container.pack_start(kofiWrapper, false, false, 0);
         box.pack_start(container, false, false, 0);
 
-        this.thanksWeb = new WebKit2.WebView();
-        this.thanksWeb.get_style_context().add_class('rounded-webview');
-        this.thanksWeb.set_can_focus(false);
-        this.thanksWeb.connect('focus-in-event', () => true);
-        this.thanksWeb.set_size_request(320, 200);
-        const thanksUrl = (this.thanksUrl || APP_URLS.thanks).trim();
-        this.thanksWeb.load_uri(thanksUrl);
-        this.thanksWeb.connect('load-changed', (webview, loadEvent) => {
-            loadEvent === WebKit2.LoadEvent.FINISHED &&
-                webview.run_javascript('window.scrollTo(0, 0);', null, null);
-        });
+        const WebKit2 = getWebKit2();
+        if (WebKit2) {
+            this.thanksWeb = new WebKit2.WebView();
+            this.thanksWeb.get_style_context().add_class('rounded-webview');
+            this.thanksWeb.set_can_focus(false);
+            this.thanksWeb.connect('focus-in-event', () => true);
+            this.thanksWeb.set_size_request(320, 200);
+            const thanksUrl = (this.thanksUrl || APP_URLS.thanks).trim();
+            this.thanksWeb.load_uri(thanksUrl);
+            this.thanksWeb.connect('load-changed', (webview, loadEvent) => {
+                loadEvent === WebKit2.LoadEvent.FINISHED &&
+                    webview.run_javascript('window.scrollTo(0, 0);', null, null);
+            });
+        } else {
+            this.thanksWeb = new Gtk.Label({
+                label: 'WebKit2 not installed\nInstall: webkit2gtk-4.1',
+                justify: Gtk.Justification.CENTER,
+                halign: Gtk.Align.CENTER,
+                valign: Gtk.Align.CENTER,
+                wrap: true
+            });
+            this.thanksWeb.get_style_context().add_class('dim-label');
+            this.thanksWeb.set_size_request(320, 200);
+        }
 
         const thanksFrame = new Gtk.Frame({
             shadow_type: Gtk.ShadowType.ETCHED_IN

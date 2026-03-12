@@ -5,19 +5,6 @@ import { Events } from '../../../app/eventBus.js';
 import { TIMEOUTS } from '../../../infrastructure/constants/Timeouts.js';
 
 class ApplyThemeScriptsMonitor {
-    captureAutomaticRestorePoint(themeName) {
-        const restorePointService = this.diContainer?.get?.('restorePointService');
-        if (typeof restorePointService?.refreshRestorePoint !== 'function') return;
-
-        restorePointService.refreshRestorePoint.call(restorePointService, {
-            folders: ((f) => Array.isArray(f) ? f : [])(this.settingsService?.settingsManager?.get?.('backupFolders')),
-            theme: themeName,
-            keepCurrentTheme: true,
-            snapshotType: 'automatic',
-            sourceTheme: themeName
-        });
-    }
-
     cleanupFlagFiles(flagFiles) {
         Object.values(flagFiles).forEach((path) => {
             const flagFile = Gio.File.new_for_path(path);
@@ -32,6 +19,7 @@ class ApplyThemeScriptsMonitor {
 
         this.cleanupFlagFiles(flagFiles);
         const installStartTime = Date.now();
+        this.eventBus?.emit?.(Events.THEME_INSTALL_START, {theme: theme.name});
 
         let attempts = 0;
         const maxAttempts = 600;
@@ -40,8 +28,7 @@ class ApplyThemeScriptsMonitor {
             attempts += 1;
             const allCompleted = Object.values(flagFiles).every((path) => Gio.File.new_for_path(path).query_exists(null));
 
-            switch (true) {
-            case allCompleted:
+            if (allCompleted) {
                 this.eventBus?.emit?.(Events.THEME_INSTALL_STOP, {theme: theme.name});
                 this.cleanupFlagFiles(flagFiles);
 
@@ -59,8 +46,6 @@ class ApplyThemeScriptsMonitor {
                     emitter: 'ApplyTheme'
                 });
 
-                this.captureAutomaticRestorePoint(theme.name);
-
                 this.settingsService?.getAll?.().showInstallTime && this.notifier?.success?.(
                     this.translate('THEME_INSTALLED_NOTIFY'),
                     this.translate('THEME_INSTALLED_WITH_TIME', {theme: theme.name, seconds: (installTime / 1000).toFixed(1)})
@@ -68,13 +53,15 @@ class ApplyThemeScriptsMonitor {
                 this.soundService?.playThemeInstalledSound?.();
 
                 return GLib.SOURCE_REMOVE;
-            case attempts >= maxAttempts:
+            }
+
+            if (attempts >= maxAttempts) {
                 this.eventBus?.emit?.(Events.THEME_INSTALL_STOP, {theme: theme.name});
                 this.cleanupFlagFiles(flagFiles);
                 return GLib.SOURCE_REMOVE;
-            default:
-                return GLib.SOURCE_CONTINUE;
             }
+
+            return GLib.SOURCE_CONTINUE;
         });
     }
 }

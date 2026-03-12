@@ -115,10 +115,13 @@ class ApplyThemeScriptsPatch {
         if (!ok) return null;
 
         let text = new TextDecoder('utf-8').decode(content)
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
             .replace(PATTERN_TRAILING_BACKGROUND, "'");
 
         const timestamp = Date.now(),
             scriptDir = scriptPath.replace(PATTERN_SCRIPT_DIR, ''),
+            patchedScriptPath = GLib.build_filenamev([scriptDir, `.lastlayer_patched_install_script_${timestamp}.sh`]),
             flagFile = `/tmp/lastlayer_script_completed_${theme.name}_${timestamp}.flag`,
             usesSudo = PATTERN_SUDO_USAGE.test(text),
             sudoDir = `/tmp/lastlayer_sudo_${theme.name}_${timestamp}`;
@@ -148,9 +151,9 @@ class ApplyThemeScriptsPatch {
         text = `${preambleBase}${sudoBlock}${isolationPreamble}\n${text}\n\nllWriteFlag\n`;
         settings.patcher_hold_terminal && (text += `echo "\\n ${this.translate('SCRIPT_HOLD_TERMINAL_MESSAGE', 'Script finished. Press Enter to close the terminal...')}"\nread -r`);
 
-        GLib.file_set_contents(`/tmp/lastlayer_patched_install_script_${timestamp}.sh`, text);
-        GLib.spawn_sync(null, [Commands.CHMOD, '+x', `/tmp/lastlayer_patched_install_script_${timestamp}.sh`], null, GLib.SpawnFlags.SEARCH_PATH, null);
-        return {path: `/tmp/lastlayer_patched_install_script_${timestamp}.sh`, flagFile};
+        GLib.file_set_contents(patchedScriptPath, text);
+        GLib.spawn_sync(null, [Commands.CHMOD, '+x', patchedScriptPath], null, GLib.SpawnFlags.SEARCH_PATH, null);
+        return {path: patchedScriptPath, flagFile};
     }
 }
 

@@ -1,6 +1,6 @@
 import {copyPrototypeDescriptors} from '../../../infrastructure/utils/PrototypeMixins.js';
 import GLib from 'gi://GLib';
-import Soup from 'gi://Soup?version=2.4';
+import Soup from 'gi://Soup';
 import { DEFAULT_SERVER_ADDRESS } from '../../../infrastructure/constants/AppUrls.js';
 import {
     assignNumberFields,
@@ -19,6 +19,59 @@ import {
     findFirstServerAddress
 } from '../../common/ThemeStatsShared.js';
 import { tryOrNull } from '../../../infrastructure/utils/ErrorUtils.js';
+
+function getSoupStatus(message) {
+    return Number(message?.status_code ?? message?.get_status?.() ?? 0) || 0;
+}
+
+function decodeSoupBody(body) {
+    if (!body) {
+        return '';
+    }
+
+    const bytes = body instanceof GLib.Bytes
+        ? (body.get_data?.() || body.toArray?.() || null)
+        : body;
+    return decodeBytes(bytes || body);
+}
+
+function sendSoupMessage(session, message, callback) {
+    if (typeof session?.queue_message === 'function') {
+        session.queue_message(message, (_session, response) => {
+            callback({
+                message: response,
+                body: response?.response_body?.data ?? null,
+                error: null
+            });
+        });
+        return;
+    }
+
+    if (typeof session?.send_and_read_async === 'function' && typeof session?.send_and_read_finish === 'function') {
+        session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null, (currentSession, result) => {
+            try {
+                callback({
+                    message,
+                    body: currentSession.send_and_read_finish(result),
+                    error: null
+                });
+            } catch (error) {
+                callback({
+                    message,
+                    body: null,
+                    error
+                });
+            }
+        });
+        return;
+    }
+
+    callback({
+        message,
+        body: null,
+        error: new Error('Unsupported Soup session API')
+    });
+}
 
 export function applyThemeContextMenuControllerStats(targetPrototype) {
     copyPrototypeDescriptors(targetPrototype, ThemeContextMenuControllerStats.prototype);
@@ -48,11 +101,12 @@ class ThemeContextMenuControllerStats {
         message.request_headers.replace('Accept', 'application/json');
         message.request_headers.replace('Cache-Control', 'no-cache, no-store, must-revalidate');
 
-        session.queue_message(message, (_sess, msg) => {
-            const isSuccessfulResponse = msg.status_code >= 200 && msg.status_code < 300;
-            if (!(isSuccessfulResponse && msg.response_body?.data)) return respond();
+        sendSoupMessage(session, message, ({message: response, body, error}) => {
+            const statusCode = getSoupStatus(response);
+            const isSuccessfulResponse = !error && statusCode >= 200 && statusCode < 300;
+            if (!(isSuccessfulResponse && body)) return respond();
 
-            const text = decodeBytes(msg.response_body.data);
+            const text = decodeSoupBody(body);
             const payload = text
                 ? tryOrNull('ThemeContextMenuControllerStats.fetchThemeStats.parse', () => JSON.parse(text))
                 : null;
@@ -160,10 +214,11 @@ class ThemeContextMenuControllerStats {
         session.timeout = 10;
         message.request_headers.append('Accept', 'application/json');
 
-        session.queue_message(message, (_session, msg) => {
-            if (msg.status_code < 200 || msg.status_code >= 300) return;
+        sendSoupMessage(session, message, ({message: response, body, error}) => {
+            const statusCode = getSoupStatus(response);
+            if (error || statusCode < 200 || statusCode >= 300) return;
 
-            let responseText = decodeBytes(msg.response_body?.data),
+            let responseText = decodeSoupBody(body),
                 networkData = responseText && tryOrNull(
                       'ThemeContextMenuControllerStats.fetchFreshStatsFromServer.parse',
                       () => JSON.parse(responseText)

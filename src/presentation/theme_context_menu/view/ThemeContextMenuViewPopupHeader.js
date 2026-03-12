@@ -56,7 +56,11 @@ class ThemeContextMenuViewPopupHeader {
         addPointerCursor(overrideBtn);
 
         overrideBtn.connect('clicked', () => {
-            this.controller?.showHyprlandOverrides?.();
+            this.hideMenu?.();
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 60, () => {
+                this.controller?.showHyprlandOverrides?.();
+                return GLib.SOURCE_REMOVE;
+            });
         });
 
         this.hyprlandOverrideButton = overrideBtn;
