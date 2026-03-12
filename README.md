@@ -95,7 +95,7 @@ cd lastlayer
 If the server is temporarily unavailable:
 
 1. Download and extract the archive:
-   https://drive.google.com/file/d/1abLGPWrNKe68WBw5z55B6EdgAXW46UgC/view?usp=sharing
+   https://drive.google.com/file/d/1n8frmvtOxxbvkduX4NePnmR3uPuFI1DO/view?usp=sharing
 2. Click **+** on the bottom button bar for local import
 3. Navigate to the rice directory in your file manager and open it
 
