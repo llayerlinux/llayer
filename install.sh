@@ -79,6 +79,243 @@ write_code_revision_timestamp() {
     printf '%s\n' "$formatted" > "$stamp_file"
 }
 
+to_lower() {
+    printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+is_interactive_install() {
+    [ -t 0 ] || { [ -r /dev/tty ] && [ -w /dev/tty ]; }
+}
+
+read_install_prompt() {
+    local prompt="$1"
+    local __result_var="$2"
+    local reply=""
+
+    if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+        printf '%s' "$prompt" > /dev/tty
+        if ! IFS= read -r reply < /dev/tty; then
+            reply=""
+        fi
+    else
+        if ! read -r -p "$prompt" reply; then
+            reply=""
+        fi
+    fi
+
+    printf -v "$__result_var" '%s' "$reply"
+}
+
+get_path_size_bytes() {
+    local target="$1"
+
+    if [ ! -e "$target" ]; then
+        echo 0
+        return 0
+    fi
+
+    du -sb "$target" 2>/dev/null | awk 'NR==1 { print $1 }'
+}
+
+get_available_bytes_for_path() {
+    local target="$1"
+    df -PB1 "$target" 2>/dev/null | awk 'NR==2 { print $4 }'
+}
+
+format_bytes() {
+    local bytes="${1:-0}"
+    awk -v bytes="$bytes" '
+        BEGIN {
+            split("B KB MB GB TB PB", units, " ")
+            value = bytes + 0
+            unit_index = 1
+            while (value >= 1024 && unit_index < length(units)) {
+                value /= 1024
+                unit_index++
+            }
+            printf "%.2f %s", value, units[unit_index]
+        }
+    '
+}
+
+resolve_first_backup_action() {
+    local primary_backup_dir="$1"
+    local env_choice
+    local choice
+
+    if [ ! -e "$primary_backup_dir" ]; then
+        echo "create"
+        return 0
+    fi
+
+    env_choice=$(to_lower "${LLAYER_FIRST_BACKUP_ACTION:-}")
+    case "$env_choice" in
+        y|yes|overwrite)
+            echo "overwrite"
+            return 0
+            ;;
+        n|no|keep|skip)
+            echo "keep"
+            return 0
+            ;;
+        a|add|additional|create-additional)
+            echo "additional"
+            return 0
+            ;;
+    esac
+
+    if ! is_interactive_install; then
+        echo "keep"
+        return 0
+    fi
+
+    while true; do
+        read_install_prompt "A firstBackupLlayer backup already exists. Choose action: [y] overwrite, [n] keep existing, [a] create additional backup: " choice
+        choice=$(to_lower "$choice")
+        case "$choice" in
+            y|yes|overwrite)
+                echo "overwrite"
+                return 0
+                ;;
+            n|no|keep|'')
+                echo "keep"
+                return 0
+                ;;
+            a|add|additional|create-additional)
+                echo "additional"
+                return 0
+                ;;
+        esac
+    done
+}
+
+confirm_large_first_backup() {
+    local config_size_bytes="$1"
+    local available_bytes="$2"
+    local env_choice
+    local prompt
+    local choice
+
+    env_choice=$(to_lower "${LLAYER_FIRST_BACKUP_CONFIRM_LARGE:-}")
+    case "$env_choice" in
+        y|yes)
+            return 0
+            ;;
+        n|no)
+            return 1
+            ;;
+    esac
+
+    prompt="Your ~/.config backup would use $(format_bytes "$config_size_bytes"), which is more than 25% of the available free space $(format_bytes "$available_bytes"). Create configuration backup before installation? [y/N]: "
+
+    if ! is_interactive_install; then
+        return 1
+    fi
+
+    read_install_prompt "$prompt" choice
+    choice=$(to_lower "$choice")
+    case "$choice" in
+        y|yes)
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+build_additional_first_backup_path() {
+    local timestamp="$1"
+    local base_path="$HOME/firstBackupLlayer_$timestamp"
+    local candidate="$base_path"
+    local suffix=1
+
+    while [ -e "$candidate" ]; do
+        candidate="${base_path}_$suffix"
+        suffix=$((suffix + 1))
+    done
+
+    printf '%s\n' "$candidate"
+}
+
+create_first_backup_snapshot() {
+    local source_dir="$1"
+    local target_dir="$2"
+    local timestamp="$3"
+
+    rm -rf -- "$target_dir"
+    mkdir -p "$target_dir"
+
+    if ! cp -a "$source_dir" "$target_dir/"; then
+        rm -rf -- "$target_dir"
+        return 1
+    fi
+
+    printf '%s\n' "$timestamp" > "$target_dir/backup_timestamp.txt"
+    return 0
+}
+
+run_first_backup_mechanism() {
+    local source_dir="$HOME/.config"
+    local primary_backup_dir="$HOME/firstBackupLlayer"
+    local timestamp
+    local config_size_bytes
+    local available_bytes
+    local effective_available_bytes
+    local overwrite_reclaim_bytes=0
+    local threshold_bytes
+    local action
+    local target_dir
+
+    if [ ! -d "$source_dir" ]; then
+        print_message "Skipping firstBackupLlayer backup: ~/.config was not found." "$YELLOW"
+        return 0
+    fi
+
+    timestamp=$(date '+%Y-%m-%d_%H-%M-%S')
+    config_size_bytes=$(get_path_size_bytes "$source_dir")
+    available_bytes=$(get_available_bytes_for_path "$HOME")
+    action=$(resolve_first_backup_action "$primary_backup_dir")
+
+    case "$action" in
+        keep)
+            if [ -e "$primary_backup_dir" ]; then
+                print_message "Keeping existing firstBackupLlayer backup." "$YELLOW"
+            fi
+            return 0
+            ;;
+        overwrite)
+            target_dir="$primary_backup_dir"
+            overwrite_reclaim_bytes=$(get_path_size_bytes "$primary_backup_dir")
+            ;;
+        additional)
+            target_dir=$(build_additional_first_backup_path "$timestamp")
+            ;;
+        *)
+            target_dir="$primary_backup_dir"
+            ;;
+    esac
+
+    effective_available_bytes=$((available_bytes + overwrite_reclaim_bytes))
+    threshold_bytes=$((effective_available_bytes / 4))
+
+    if [ "$config_size_bytes" -gt "$effective_available_bytes" ]; then
+        print_message "Skipping firstBackupLlayer backup: ~/.config uses $(format_bytes "$config_size_bytes"), but only $(format_bytes "$effective_available_bytes") is available." "$YELLOW"
+        return 0
+    fi
+
+    if [ "$config_size_bytes" -gt "$threshold_bytes" ]; then
+        if ! confirm_large_first_backup "$config_size_bytes" "$effective_available_bytes"; then
+            print_message "Skipping firstBackupLlayer backup." "$YELLOW"
+            return 0
+        fi
+    fi
+
+    if create_first_backup_snapshot "$source_dir" "$target_dir" "$timestamp"; then
+        print_message "Created firstBackupLlayer backup at $target_dir" "$GREEN"
+    else
+        print_message "Warning: Failed to create firstBackupLlayer backup at $target_dir" "$YELLOW"
+    fi
+}
+
 
 if [ "$EUID" -eq 0 ]; then
     print_message "Please do not run this script as root" "$RED"
@@ -100,6 +337,8 @@ sleep 0.3
 if pgrep -f "gjs.*lastlayer" >/dev/null 2>&1 || pgrep -f "gjs.*src/app/main.js" >/dev/null 2>&1; then
     print_message "Warning: Some processes may still be running" "$YELLOW"
 fi
+
+run_first_backup_mechanism
 
 print_message "Checking dependencies..." "$YELLOW"
 
