@@ -145,7 +145,7 @@ The provided list of rices (sets of dotfiles) is a demonstrational example of th
 
 <a id="system-flow"></a>
 ## Documentation
-
+- [0. Compatibility Matrix](#compatibility)
 - [1. System Flow](#system-flow)
 - [2. Rice standard](#rice-standard)
   - [Rice card (current)](#rice-card-current)
@@ -166,6 +166,25 @@ The provided list of rices (sets of dotfiles) is a demonstrational example of th
 - [FAQ](FAQ.md)
 
 
+<a id="compatibility"></a>
+## 0. Compatibility Matrix
+
+### Compatibility matrix based on real tests
+| Distribution ↓ | Hyprland | Sway | i3 | bspwm |
+|---|---|---|---|---|
+| **Arch Linux** | ✅ (0.49-0.54) | F | F | F |
+| **NixOS** | W | F | F | F |
+| **Fedora** | W | F | F | F |
+| **Ubuntu** | W | F | F | F |
+| **…** | W | F | F | F |
+
+- **✅** - Fully tested and confirmed working  
+- **W** - *Waiting*: awaiting user-submitted rices for this distribution  
+- **F** - *Future*: full rice support planned in upcoming releases
+
+
+
+<a id="system-flow"></a>
 ## 1. System Flow. Last Layer
 
 <img height="700" alt="lastlayer-architecture-color" src="https://github.com/user-attachments/assets/d49f6ed7-13fb-4372-a967-ddef33bf7ffa" />
