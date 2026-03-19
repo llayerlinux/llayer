@@ -186,7 +186,9 @@ const HYPRLAND_MIGRATIONS = {
     'misc:new_window_takes_over_fullscreen': {
         version: '0.53.0',
         action: 'renamed',
-        newPath: 'misc:on_focus_under_fullscreen'
+        newPath: 'misc:on_focus_under_fullscreen',
+        removedIn: '0.54.0',
+        note: 'Renamed in 0.53, fully removed in 0.54'
     },
     'misc:disable_hyprland_qtutils_check': {
         version: '0.52.0',
@@ -208,7 +210,8 @@ const HYPRLAND_MIGRATIONS = {
     'input:touchpad:workspace_swipe_min_fingers': {
         version: '0.40.0',
         action: 'removed'
-    }
+    },
+    'windowrulev2': { version: '0.54.0', action: 'removed' }
 };
 
 const HYPRLAND_FUTURE_PARAMS = {
@@ -391,7 +394,9 @@ const HYPRLAND_FUTURE_PARAMS = {
         minVersion: '0.48.0',
         action: 'disable',
         note: 'Color management not available in older versions'
-    }
+    },
+
+    'windowrule': { minVersion: '0.54.0', action: 'rename', oldPath: 'windowrulev2' }
 };
 
 export { HYPRLAND_MIGRATIONS, HYPRLAND_FUTURE_PARAMS };

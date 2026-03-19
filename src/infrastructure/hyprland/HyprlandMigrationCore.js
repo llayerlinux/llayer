@@ -34,6 +34,11 @@ export function applyHyprlandMigrationCore(targetPrototype) {
             let canMove = (legacyMigration.action === 'moved' || legacyMigration.action === 'renamed')
                 && !!legacyMigration.newPath;
             if (canMove) {
+                if (legacyMigration.removedIn && this.isVersionAtLeast(version, legacyMigration.removedIn)) {
+                    this.log(`Skipping removed parameter: ${path} (removed in ${legacyMigration.removedIn})`);
+                    markProcessed(path);
+                    return true;
+                }
                 this.log(`Migrating ${path} -> ${legacyMigration.newPath}`);
                 result.set(legacyMigration.newPath, this.transformValue(value, legacyMigration.transform));
                 markProcessed(path, legacyMigration.newPath);
