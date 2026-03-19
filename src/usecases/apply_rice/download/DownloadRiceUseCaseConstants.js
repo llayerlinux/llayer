@@ -16,7 +16,7 @@ export const TIMEOUTS = {
 
 export const SIZES = {
     BYTES_PER_MB: 1048576,
-    MIN_VALID_ARCHIVE: 1048576
+    MIN_VALID_ARCHIVE: 10240
 };
 
 const ARCHIVE_EXTENSIONS = ['.tar.xz', '.tar.gz', '.zip'];

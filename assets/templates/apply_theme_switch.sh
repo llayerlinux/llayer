@@ -180,6 +180,7 @@ isBarRunning() {
                 || pgrep -f "/run/user/$(id -u)/.*ags\\.js" &>/dev/null \
                 || pgrep -f "gjs.*(ags|Aylur)" &>/dev/null
             ;;
+        quickshell) pgrep -f "quickshell|qs -c" &>/dev/null ;;
         hyprpanel|nwg-dock-hyprland) pgrep -f "$bar" &>/dev/null ;;
         *) pgrep "$bar" &>/dev/null ;;
     esac
@@ -226,6 +227,7 @@ killBar() {
     local bar="$1"
     case "$bar" in
         ags|agsv1) killAgs ;;
+        quickshell) pkill -f "quickshell|qs -c" 2>/dev/null || true ;;
         hyprpanel|nwg-dock-hyprland) pkill -f "$bar" 2>/dev/null || true ;;
         *) pkill "$bar" 2>/dev/null || true ;;
     esac
@@ -237,6 +239,7 @@ killBar() {
     isBarRunning "$bar" && {
         case "$bar" in
             ags|agsv1) killAgs ;;
+            quickshell) pkill -9 -f "quickshell|qs -c" 2>/dev/null || true ;;
             hyprpanel|nwg-dock-hyprland) pkill -9 -f "$bar" 2>/dev/null || true ;;
             *) pkill -9 "$bar" 2>/dev/null || true ;;
         esac

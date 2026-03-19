@@ -34,8 +34,9 @@ export const BARS = [{
     id: 'quickshell',
     name: 'Quickshell',
     process: 'quickshell',
+    processPattern: 'quickshell|qs\\b',
     startCmd: 'quickshell',
-    killCmd: 'pkill quickshell',
+    killCmd: 'pkill -f "quickshell|qs -c"',
     killSignal: null
 }, {
     id: 'fabric',
