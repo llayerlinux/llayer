@@ -13,7 +13,7 @@
 </div>
 
 
-# <img width="64" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475" /> lastlayer (llayer)
+# <img width="120" height="120" alt="icon" src="https://github.com/user-attachments/assets/27330896-e1fd-47d2-83cb-463c46a73475" /> lastlayer (llayer)
 
 **A dynamic interface layer - a new abstraction above the desktop environment that lets you control the environment at multiple levels and transform it instantly.**
 
